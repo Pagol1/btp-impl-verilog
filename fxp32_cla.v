@@ -6,7 +6,7 @@ module fxp32_cla(
 	input clk,
 	input [`FXP32_ADDR] in_a,
 	input [`FXP32_ADDR] in_b,
-	input in_carry
+	input in_carry,
 	output [`FXP32_ADDR] out_s,
 	output out_overflow
 );
@@ -21,6 +21,7 @@ module fxp32_cla(
 	localparam FXP32_CLA_L2_WIDTH 8;
 	localparam FXP32_CLA_L3_WIDTH 4;
 	localparam FXP32_CLA_L4_WIDTH 2;
+
 	wire [FXP32_CLA_L0_ADDR] gen0, prop0;
 	wire [FXP32_CLA_L1_ADDR] gen1, prop1;
 	wire [FXP32_CLA_L2_ADDR] gen2, prop2;

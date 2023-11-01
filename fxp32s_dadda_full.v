@@ -8,7 +8,7 @@ module fxp32s_dadda_full(
 	input clk,
 	input [`FXP32_ADDR] in_a,		// Sign-Mag
 	input [`FXP32_ADDR] in_b,		// Sign-Mag
-	input in_carry
+	input in_carry,
 	output [`FXP32_ADDR] out_s
 );
 	localparam FXP32_DM_O_ADDR 63:0;

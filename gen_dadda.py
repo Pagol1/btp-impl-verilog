@@ -64,7 +64,7 @@ def gen_dadda():
     op += pp("input clk,")
     op += pp("input [" + ADDR + "] in_a,\t\t// Sign-Mag")
     op += pp("input [" + ADDR + "] in_b,\t\t// Sign-Mag")
-    op += pp("input in_carry")
+    op += pp("input in_carry,")
     op += pp("output [" + ADDR + "] out_s")
     INDENT -= 1
     op += pp(");"); INDENT += 1

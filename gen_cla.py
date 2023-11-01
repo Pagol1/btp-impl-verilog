@@ -59,7 +59,7 @@ def gen_cla():
     op += pp("input clk,")
     op += pp("input [" + ADDR + "] in_a,")
     op += pp("input [" + ADDR + "] in_b,")
-    op += pp("input in_carry")
+    op += pp("input in_carry,")
     op += pp("output [" + ADDR + "] out_s,")
     op += pp("output out_overflow")
     INDENT -= 1
@@ -145,8 +145,13 @@ def gen_cla():
 if __name__ == "__main__":
     ### Configuration
     ## FXP32
-    IO_PRE = "`FXP64_"
-    INT_PRE = "`FXP64_CLA_"
+#    IO_PRE = "`FXP32_"
+#    INT_PRE = "`FXP32_CLA_"
+#    MODULE_FILE_NAME = "fxp32_cla.v"
+#    BIT_LEN = 32
+    ## FXP64
+    IO_PRE = "`BIT64_"
+    INT_PRE = "`BIT64_CLA_"
     MODULE_FILE_NAME = "cla_64bit.v"
     BIT_LEN = 64
     ## CLA_4

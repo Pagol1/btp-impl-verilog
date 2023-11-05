@@ -1,28 +1,21 @@
-// IO Params
-`define FXP32_ADDR 31:0
-`define FXP32_WIDTH 32
-`define FXP32_SIGN 31
-`define FXP32_MAG 30:0
+`include "my_defines.vh"
 
-module fxp32s_dadda_full(
+module fxp32s_dadda_pipe(
 	input clk,
-	input [`FXP32_ADDR] in_a,		// Sign-Mag
-	input [`FXP32_ADDR] in_b,		// Sign-Mag
-	input in_carry,
-	output [`FXP32_ADDR] out_s
+	input rstn,
+	input [`FXP32S_ADDR] in_a,		// Sign-Mag
+	input [`FXP32S_ADDR] in_b,		// Sign-Mag
+	output [`FXP32S_ADDR] out_s,
+	output out_overflow
 );
-	localparam FXP32_DM_O_ADDR 63:0;
-	localparam FXP32_DM_O_WIDTH 64;
-	localparam FXP32_DM_O_MAG 63:32;
 
-	wire neg_out;
-	assign neg_out = in_a[`FXP32_SIGN] ^ in_b[`FXP32_SIGN];
-	wire [`FXP32_ADDR] a, b;
-	wire [FXP32_DM_O_ADDR] sum;
-	assign a[`FXP32_SIGN] = 1'b0;
-	assign a[`FXP32_MAG] = in_a[`FXP32_MAG];
-	assign b[`FXP32_SIGN] = 1'b0;
-	assign b[`FXP32_MAG] = in_b[`FXP32_MAG];
+	wire neg_out_st_0;
+	assign neg_out_st_0 = in_a[`FXP32S_SIGN] ^ in_b[`FXP32S_SIGN];
+	wire [`FXP32S_ADDR] a, b;
+	assign a[`FXP32S_SIGN] = 1'b0;
+	assign a[`FXP32S_MAG] = in_a[`FXP32S_MAG];
+	assign b[`FXP32S_SIGN] = 1'b0;
+	assign b[`FXP32S_MAG] = in_b[`FXP32S_MAG];
 
 	wire [0:0] dm_int_st0_0;
 	wire [1:0] dm_int_st0_1;
@@ -3650,457 +3643,587 @@ module fxp32s_dadda_full(
 	assign dm_int_st3_62[0] = dm_int_st2_62[0];
 
 	//// Stage 4 ////
-	wire [0:0] dm_int_st4_0;
-	wire [1:0] dm_int_st4_1;
-	wire [2:0] dm_int_st4_2;
-	wire [3:0] dm_int_st4_3;
-	wire [4:0] dm_int_st4_4;
-	wire [5:0] dm_int_st4_5;
-	wire [6:0] dm_int_st4_6;
-	wire [7:0] dm_int_st4_7;
-	wire [8:0] dm_int_st4_8;
-	wire [8:0] dm_int_st4_9;
-	wire [8:0] dm_int_st4_10;
-	wire [8:0] dm_int_st4_11;
-	wire [8:0] dm_int_st4_12;
-	wire [8:0] dm_int_st4_13;
-	wire [8:0] dm_int_st4_14;
-	wire [8:0] dm_int_st4_15;
-	wire [8:0] dm_int_st4_16;
-	wire [8:0] dm_int_st4_17;
-	wire [8:0] dm_int_st4_18;
-	wire [8:0] dm_int_st4_19;
-	wire [8:0] dm_int_st4_20;
-	wire [8:0] dm_int_st4_21;
-	wire [8:0] dm_int_st4_22;
-	wire [8:0] dm_int_st4_23;
-	wire [8:0] dm_int_st4_24;
-	wire [8:0] dm_int_st4_25;
-	wire [8:0] dm_int_st4_26;
-	wire [8:0] dm_int_st4_27;
-	wire [8:0] dm_int_st4_28;
-	wire [8:0] dm_int_st4_29;
-	wire [8:0] dm_int_st4_30;
-	wire [8:0] dm_int_st4_31;
-	wire [8:0] dm_int_st4_32;
-	wire [8:0] dm_int_st4_33;
-	wire [8:0] dm_int_st4_34;
-	wire [8:0] dm_int_st4_35;
-	wire [8:0] dm_int_st4_36;
-	wire [8:0] dm_int_st4_37;
-	wire [8:0] dm_int_st4_38;
-	wire [8:0] dm_int_st4_39;
-	wire [8:0] dm_int_st4_40;
-	wire [8:0] dm_int_st4_41;
-	wire [8:0] dm_int_st4_42;
-	wire [8:0] dm_int_st4_43;
-	wire [8:0] dm_int_st4_44;
-	wire [8:0] dm_int_st4_45;
-	wire [8:0] dm_int_st4_46;
-	wire [8:0] dm_int_st4_47;
-	wire [8:0] dm_int_st4_48;
-	wire [8:0] dm_int_st4_49;
-	wire [8:0] dm_int_st4_50;
-	wire [8:0] dm_int_st4_51;
-	wire [8:0] dm_int_st4_52;
-	wire [8:0] dm_int_st4_53;
-	wire [8:0] dm_int_st4_54;
-	wire [8:0] dm_int_st4_55;
-	wire [6:0] dm_int_st4_56;
-	wire [5:0] dm_int_st4_57;
-	wire [4:0] dm_int_st4_58;
-	wire [3:0] dm_int_st4_59;
-	wire [2:0] dm_int_st4_60;
-	wire [1:0] dm_int_st4_61;
-	wire [0:0] dm_int_st4_62;
+	wire [0:0] dm_int_st4_0_tmp;
+	reg [0:0] dm_int_st4_0;
+	wire [1:0] dm_int_st4_1_tmp;
+	reg [1:0] dm_int_st4_1;
+	wire [2:0] dm_int_st4_2_tmp;
+	reg [2:0] dm_int_st4_2;
+	wire [3:0] dm_int_st4_3_tmp;
+	reg [3:0] dm_int_st4_3;
+	wire [4:0] dm_int_st4_4_tmp;
+	reg [4:0] dm_int_st4_4;
+	wire [5:0] dm_int_st4_5_tmp;
+	reg [5:0] dm_int_st4_5;
+	wire [6:0] dm_int_st4_6_tmp;
+	reg [6:0] dm_int_st4_6;
+	wire [7:0] dm_int_st4_7_tmp;
+	reg [7:0] dm_int_st4_7;
+	wire [8:0] dm_int_st4_8_tmp;
+	reg [8:0] dm_int_st4_8;
+	wire [8:0] dm_int_st4_9_tmp;
+	reg [8:0] dm_int_st4_9;
+	wire [8:0] dm_int_st4_10_tmp;
+	reg [8:0] dm_int_st4_10;
+	wire [8:0] dm_int_st4_11_tmp;
+	reg [8:0] dm_int_st4_11;
+	wire [8:0] dm_int_st4_12_tmp;
+	reg [8:0] dm_int_st4_12;
+	wire [8:0] dm_int_st4_13_tmp;
+	reg [8:0] dm_int_st4_13;
+	wire [8:0] dm_int_st4_14_tmp;
+	reg [8:0] dm_int_st4_14;
+	wire [8:0] dm_int_st4_15_tmp;
+	reg [8:0] dm_int_st4_15;
+	wire [8:0] dm_int_st4_16_tmp;
+	reg [8:0] dm_int_st4_16;
+	wire [8:0] dm_int_st4_17_tmp;
+	reg [8:0] dm_int_st4_17;
+	wire [8:0] dm_int_st4_18_tmp;
+	reg [8:0] dm_int_st4_18;
+	wire [8:0] dm_int_st4_19_tmp;
+	reg [8:0] dm_int_st4_19;
+	wire [8:0] dm_int_st4_20_tmp;
+	reg [8:0] dm_int_st4_20;
+	wire [8:0] dm_int_st4_21_tmp;
+	reg [8:0] dm_int_st4_21;
+	wire [8:0] dm_int_st4_22_tmp;
+	reg [8:0] dm_int_st4_22;
+	wire [8:0] dm_int_st4_23_tmp;
+	reg [8:0] dm_int_st4_23;
+	wire [8:0] dm_int_st4_24_tmp;
+	reg [8:0] dm_int_st4_24;
+	wire [8:0] dm_int_st4_25_tmp;
+	reg [8:0] dm_int_st4_25;
+	wire [8:0] dm_int_st4_26_tmp;
+	reg [8:0] dm_int_st4_26;
+	wire [8:0] dm_int_st4_27_tmp;
+	reg [8:0] dm_int_st4_27;
+	wire [8:0] dm_int_st4_28_tmp;
+	reg [8:0] dm_int_st4_28;
+	wire [8:0] dm_int_st4_29_tmp;
+	reg [8:0] dm_int_st4_29;
+	wire [8:0] dm_int_st4_30_tmp;
+	reg [8:0] dm_int_st4_30;
+	wire [8:0] dm_int_st4_31_tmp;
+	reg [8:0] dm_int_st4_31;
+	wire [8:0] dm_int_st4_32_tmp;
+	reg [8:0] dm_int_st4_32;
+	wire [8:0] dm_int_st4_33_tmp;
+	reg [8:0] dm_int_st4_33;
+	wire [8:0] dm_int_st4_34_tmp;
+	reg [8:0] dm_int_st4_34;
+	wire [8:0] dm_int_st4_35_tmp;
+	reg [8:0] dm_int_st4_35;
+	wire [8:0] dm_int_st4_36_tmp;
+	reg [8:0] dm_int_st4_36;
+	wire [8:0] dm_int_st4_37_tmp;
+	reg [8:0] dm_int_st4_37;
+	wire [8:0] dm_int_st4_38_tmp;
+	reg [8:0] dm_int_st4_38;
+	wire [8:0] dm_int_st4_39_tmp;
+	reg [8:0] dm_int_st4_39;
+	wire [8:0] dm_int_st4_40_tmp;
+	reg [8:0] dm_int_st4_40;
+	wire [8:0] dm_int_st4_41_tmp;
+	reg [8:0] dm_int_st4_41;
+	wire [8:0] dm_int_st4_42_tmp;
+	reg [8:0] dm_int_st4_42;
+	wire [8:0] dm_int_st4_43_tmp;
+	reg [8:0] dm_int_st4_43;
+	wire [8:0] dm_int_st4_44_tmp;
+	reg [8:0] dm_int_st4_44;
+	wire [8:0] dm_int_st4_45_tmp;
+	reg [8:0] dm_int_st4_45;
+	wire [8:0] dm_int_st4_46_tmp;
+	reg [8:0] dm_int_st4_46;
+	wire [8:0] dm_int_st4_47_tmp;
+	reg [8:0] dm_int_st4_47;
+	wire [8:0] dm_int_st4_48_tmp;
+	reg [8:0] dm_int_st4_48;
+	wire [8:0] dm_int_st4_49_tmp;
+	reg [8:0] dm_int_st4_49;
+	wire [8:0] dm_int_st4_50_tmp;
+	reg [8:0] dm_int_st4_50;
+	wire [8:0] dm_int_st4_51_tmp;
+	reg [8:0] dm_int_st4_51;
+	wire [8:0] dm_int_st4_52_tmp;
+	reg [8:0] dm_int_st4_52;
+	wire [8:0] dm_int_st4_53_tmp;
+	reg [8:0] dm_int_st4_53;
+	wire [8:0] dm_int_st4_54_tmp;
+	reg [8:0] dm_int_st4_54;
+	wire [8:0] dm_int_st4_55_tmp;
+	reg [8:0] dm_int_st4_55;
+	wire [6:0] dm_int_st4_56_tmp;
+	reg [6:0] dm_int_st4_56;
+	wire [5:0] dm_int_st4_57_tmp;
+	reg [5:0] dm_int_st4_57;
+	wire [4:0] dm_int_st4_58_tmp;
+	reg [4:0] dm_int_st4_58;
+	wire [3:0] dm_int_st4_59_tmp;
+	reg [3:0] dm_int_st4_59;
+	wire [2:0] dm_int_st4_60_tmp;
+	reg [2:0] dm_int_st4_60;
+	wire [1:0] dm_int_st4_61_tmp;
+	reg [1:0] dm_int_st4_61;
+	wire [0:0] dm_int_st4_62_tmp;
+	reg [0:0] dm_int_st4_62;
+	reg neg_out_st_4;
 
+	always @(posedge clk) begin
+		neg_out_st_4 <= neg_out_st_0 & rstn;
+		dm_int_st4_0 <= dm_int_st4_0_tmp & {1{rstn}};
+		dm_int_st4_1 <= dm_int_st4_1_tmp & {2{rstn}};
+		dm_int_st4_2 <= dm_int_st4_2_tmp & {3{rstn}};
+		dm_int_st4_3 <= dm_int_st4_3_tmp & {4{rstn}};
+		dm_int_st4_4 <= dm_int_st4_4_tmp & {5{rstn}};
+		dm_int_st4_5 <= dm_int_st4_5_tmp & {6{rstn}};
+		dm_int_st4_6 <= dm_int_st4_6_tmp & {7{rstn}};
+		dm_int_st4_7 <= dm_int_st4_7_tmp & {8{rstn}};
+		dm_int_st4_8 <= dm_int_st4_8_tmp & {9{rstn}};
+		dm_int_st4_9 <= dm_int_st4_9_tmp & {9{rstn}};
+		dm_int_st4_10 <= dm_int_st4_10_tmp & {9{rstn}};
+		dm_int_st4_11 <= dm_int_st4_11_tmp & {9{rstn}};
+		dm_int_st4_12 <= dm_int_st4_12_tmp & {9{rstn}};
+		dm_int_st4_13 <= dm_int_st4_13_tmp & {9{rstn}};
+		dm_int_st4_14 <= dm_int_st4_14_tmp & {9{rstn}};
+		dm_int_st4_15 <= dm_int_st4_15_tmp & {9{rstn}};
+		dm_int_st4_16 <= dm_int_st4_16_tmp & {9{rstn}};
+		dm_int_st4_17 <= dm_int_st4_17_tmp & {9{rstn}};
+		dm_int_st4_18 <= dm_int_st4_18_tmp & {9{rstn}};
+		dm_int_st4_19 <= dm_int_st4_19_tmp & {9{rstn}};
+		dm_int_st4_20 <= dm_int_st4_20_tmp & {9{rstn}};
+		dm_int_st4_21 <= dm_int_st4_21_tmp & {9{rstn}};
+		dm_int_st4_22 <= dm_int_st4_22_tmp & {9{rstn}};
+		dm_int_st4_23 <= dm_int_st4_23_tmp & {9{rstn}};
+		dm_int_st4_24 <= dm_int_st4_24_tmp & {9{rstn}};
+		dm_int_st4_25 <= dm_int_st4_25_tmp & {9{rstn}};
+		dm_int_st4_26 <= dm_int_st4_26_tmp & {9{rstn}};
+		dm_int_st4_27 <= dm_int_st4_27_tmp & {9{rstn}};
+		dm_int_st4_28 <= dm_int_st4_28_tmp & {9{rstn}};
+		dm_int_st4_29 <= dm_int_st4_29_tmp & {9{rstn}};
+		dm_int_st4_30 <= dm_int_st4_30_tmp & {9{rstn}};
+		dm_int_st4_31 <= dm_int_st4_31_tmp & {9{rstn}};
+		dm_int_st4_32 <= dm_int_st4_32_tmp & {9{rstn}};
+		dm_int_st4_33 <= dm_int_st4_33_tmp & {9{rstn}};
+		dm_int_st4_34 <= dm_int_st4_34_tmp & {9{rstn}};
+		dm_int_st4_35 <= dm_int_st4_35_tmp & {9{rstn}};
+		dm_int_st4_36 <= dm_int_st4_36_tmp & {9{rstn}};
+		dm_int_st4_37 <= dm_int_st4_37_tmp & {9{rstn}};
+		dm_int_st4_38 <= dm_int_st4_38_tmp & {9{rstn}};
+		dm_int_st4_39 <= dm_int_st4_39_tmp & {9{rstn}};
+		dm_int_st4_40 <= dm_int_st4_40_tmp & {9{rstn}};
+		dm_int_st4_41 <= dm_int_st4_41_tmp & {9{rstn}};
+		dm_int_st4_42 <= dm_int_st4_42_tmp & {9{rstn}};
+		dm_int_st4_43 <= dm_int_st4_43_tmp & {9{rstn}};
+		dm_int_st4_44 <= dm_int_st4_44_tmp & {9{rstn}};
+		dm_int_st4_45 <= dm_int_st4_45_tmp & {9{rstn}};
+		dm_int_st4_46 <= dm_int_st4_46_tmp & {9{rstn}};
+		dm_int_st4_47 <= dm_int_st4_47_tmp & {9{rstn}};
+		dm_int_st4_48 <= dm_int_st4_48_tmp & {9{rstn}};
+		dm_int_st4_49 <= dm_int_st4_49_tmp & {9{rstn}};
+		dm_int_st4_50 <= dm_int_st4_50_tmp & {9{rstn}};
+		dm_int_st4_51 <= dm_int_st4_51_tmp & {9{rstn}};
+		dm_int_st4_52 <= dm_int_st4_52_tmp & {9{rstn}};
+		dm_int_st4_53 <= dm_int_st4_53_tmp & {9{rstn}};
+		dm_int_st4_54 <= dm_int_st4_54_tmp & {9{rstn}};
+		dm_int_st4_55 <= dm_int_st4_55_tmp & {9{rstn}};
+		dm_int_st4_56 <= dm_int_st4_56_tmp & {7{rstn}};
+		dm_int_st4_57 <= dm_int_st4_57_tmp & {6{rstn}};
+		dm_int_st4_58 <= dm_int_st4_58_tmp & {5{rstn}};
+		dm_int_st4_59 <= dm_int_st4_59_tmp & {4{rstn}};
+		dm_int_st4_60 <= dm_int_st4_60_tmp & {3{rstn}};
+		dm_int_st4_61 <= dm_int_st4_61_tmp & {2{rstn}};
+		dm_int_st4_62 <= dm_int_st4_62_tmp & {1{rstn}};
+	end
 	// Bit 0
-	assign dm_int_st4_0[0] = dm_int_st3_0[0];
+	assign dm_int_st4_0_tmp[0] = dm_int_st3_0[0];
 	// Bit 1
-	assign dm_int_st4_1[0] = dm_int_st3_1[0];
-	assign dm_int_st4_1[1] = dm_int_st3_1[1];
+	assign dm_int_st4_1_tmp[0] = dm_int_st3_1[0];
+	assign dm_int_st4_1_tmp[1] = dm_int_st3_1[1];
 	// Bit 2
-	assign dm_int_st4_2[0] = dm_int_st3_2[0];
-	assign dm_int_st4_2[1] = dm_int_st3_2[1];
-	assign dm_int_st4_2[2] = dm_int_st3_2[2];
+	assign dm_int_st4_2_tmp[0] = dm_int_st3_2[0];
+	assign dm_int_st4_2_tmp[1] = dm_int_st3_2[1];
+	assign dm_int_st4_2_tmp[2] = dm_int_st3_2[2];
 	// Bit 3
-	assign dm_int_st4_3[0] = dm_int_st3_3[0];
-	assign dm_int_st4_3[1] = dm_int_st3_3[1];
-	assign dm_int_st4_3[2] = dm_int_st3_3[2];
-	assign dm_int_st4_3[3] = dm_int_st3_3[3];
+	assign dm_int_st4_3_tmp[0] = dm_int_st3_3[0];
+	assign dm_int_st4_3_tmp[1] = dm_int_st3_3[1];
+	assign dm_int_st4_3_tmp[2] = dm_int_st3_3[2];
+	assign dm_int_st4_3_tmp[3] = dm_int_st3_3[3];
 	// Bit 4
-	assign dm_int_st4_4[0] = dm_int_st3_4[0];
-	assign dm_int_st4_4[1] = dm_int_st3_4[1];
-	assign dm_int_st4_4[2] = dm_int_st3_4[2];
-	assign dm_int_st4_4[3] = dm_int_st3_4[3];
-	assign dm_int_st4_4[4] = dm_int_st3_4[4];
+	assign dm_int_st4_4_tmp[0] = dm_int_st3_4[0];
+	assign dm_int_st4_4_tmp[1] = dm_int_st3_4[1];
+	assign dm_int_st4_4_tmp[2] = dm_int_st3_4[2];
+	assign dm_int_st4_4_tmp[3] = dm_int_st3_4[3];
+	assign dm_int_st4_4_tmp[4] = dm_int_st3_4[4];
 	// Bit 5
-	assign dm_int_st4_5[0] = dm_int_st3_5[0];
-	assign dm_int_st4_5[1] = dm_int_st3_5[1];
-	assign dm_int_st4_5[2] = dm_int_st3_5[2];
-	assign dm_int_st4_5[3] = dm_int_st3_5[3];
-	assign dm_int_st4_5[4] = dm_int_st3_5[4];
-	assign dm_int_st4_5[5] = dm_int_st3_5[5];
+	assign dm_int_st4_5_tmp[0] = dm_int_st3_5[0];
+	assign dm_int_st4_5_tmp[1] = dm_int_st3_5[1];
+	assign dm_int_st4_5_tmp[2] = dm_int_st3_5[2];
+	assign dm_int_st4_5_tmp[3] = dm_int_st3_5[3];
+	assign dm_int_st4_5_tmp[4] = dm_int_st3_5[4];
+	assign dm_int_st4_5_tmp[5] = dm_int_st3_5[5];
 	// Bit 6
-	assign dm_int_st4_6[0] = dm_int_st3_6[0];
-	assign dm_int_st4_6[1] = dm_int_st3_6[1];
-	assign dm_int_st4_6[2] = dm_int_st3_6[2];
-	assign dm_int_st4_6[3] = dm_int_st3_6[3];
-	assign dm_int_st4_6[4] = dm_int_st3_6[4];
-	assign dm_int_st4_6[5] = dm_int_st3_6[5];
-	assign dm_int_st4_6[6] = dm_int_st3_6[6];
+	assign dm_int_st4_6_tmp[0] = dm_int_st3_6[0];
+	assign dm_int_st4_6_tmp[1] = dm_int_st3_6[1];
+	assign dm_int_st4_6_tmp[2] = dm_int_st3_6[2];
+	assign dm_int_st4_6_tmp[3] = dm_int_st3_6[3];
+	assign dm_int_st4_6_tmp[4] = dm_int_st3_6[4];
+	assign dm_int_st4_6_tmp[5] = dm_int_st3_6[5];
+	assign dm_int_st4_6_tmp[6] = dm_int_st3_6[6];
 	// Bit 7
-	assign dm_int_st4_7[0] = dm_int_st3_7[0];
-	assign dm_int_st4_7[1] = dm_int_st3_7[1];
-	assign dm_int_st4_7[2] = dm_int_st3_7[2];
-	assign dm_int_st4_7[3] = dm_int_st3_7[3];
-	assign dm_int_st4_7[4] = dm_int_st3_7[4];
-	assign dm_int_st4_7[5] = dm_int_st3_7[5];
-	assign dm_int_st4_7[6] = dm_int_st3_7[6];
-	assign dm_int_st4_7[7] = dm_int_st3_7[7];
+	assign dm_int_st4_7_tmp[0] = dm_int_st3_7[0];
+	assign dm_int_st4_7_tmp[1] = dm_int_st3_7[1];
+	assign dm_int_st4_7_tmp[2] = dm_int_st3_7[2];
+	assign dm_int_st4_7_tmp[3] = dm_int_st3_7[3];
+	assign dm_int_st4_7_tmp[4] = dm_int_st3_7[4];
+	assign dm_int_st4_7_tmp[5] = dm_int_st3_7[5];
+	assign dm_int_st4_7_tmp[6] = dm_int_st3_7[6];
+	assign dm_int_st4_7_tmp[7] = dm_int_st3_7[7];
 	// Bit 8
-	assign dm_int_st4_8[0] = dm_int_st3_8[0];
-	assign dm_int_st4_8[1] = dm_int_st3_8[1];
-	assign dm_int_st4_8[2] = dm_int_st3_8[2];
-	assign dm_int_st4_8[3] = dm_int_st3_8[3];
-	assign dm_int_st4_8[4] = dm_int_st3_8[4];
-	assign dm_int_st4_8[5] = dm_int_st3_8[5];
-	assign dm_int_st4_8[6] = dm_int_st3_8[6];
-	assign dm_int_st4_8[7] = dm_int_st3_8[7];
-	assign dm_int_st4_8[8] = dm_int_st3_8[8];
+	assign dm_int_st4_8_tmp[0] = dm_int_st3_8[0];
+	assign dm_int_st4_8_tmp[1] = dm_int_st3_8[1];
+	assign dm_int_st4_8_tmp[2] = dm_int_st3_8[2];
+	assign dm_int_st4_8_tmp[3] = dm_int_st3_8[3];
+	assign dm_int_st4_8_tmp[4] = dm_int_st3_8[4];
+	assign dm_int_st4_8_tmp[5] = dm_int_st3_8[5];
+	assign dm_int_st4_8_tmp[6] = dm_int_st3_8[6];
+	assign dm_int_st4_8_tmp[7] = dm_int_st3_8[7];
+	assign dm_int_st4_8_tmp[8] = dm_int_st3_8[8];
 	// Bit 9
-	half_adder HA20(.a(dm_int_st3_9[0]), .b(dm_int_st3_9[1]), .s(dm_int_st4_9[0]), .cout(dm_int_st4_10[0]));
-	assign dm_int_st4_9[1] = dm_int_st3_9[2];
-	assign dm_int_st4_9[2] = dm_int_st3_9[3];
-	assign dm_int_st4_9[3] = dm_int_st3_9[4];
-	assign dm_int_st4_9[4] = dm_int_st3_9[5];
-	assign dm_int_st4_9[5] = dm_int_st3_9[6];
-	assign dm_int_st4_9[6] = dm_int_st3_9[7];
-	assign dm_int_st4_9[7] = dm_int_st3_9[8];
-	assign dm_int_st4_9[8] = dm_int_st3_9[9];
+	half_adder HA20(.a(dm_int_st3_9[0]), .b(dm_int_st3_9[1]), .s(dm_int_st4_9_tmp[0]), .cout(dm_int_st4_10_tmp[0]));
+	assign dm_int_st4_9_tmp[1] = dm_int_st3_9[2];
+	assign dm_int_st4_9_tmp[2] = dm_int_st3_9[3];
+	assign dm_int_st4_9_tmp[3] = dm_int_st3_9[4];
+	assign dm_int_st4_9_tmp[4] = dm_int_st3_9[5];
+	assign dm_int_st4_9_tmp[5] = dm_int_st3_9[6];
+	assign dm_int_st4_9_tmp[6] = dm_int_st3_9[7];
+	assign dm_int_st4_9_tmp[7] = dm_int_st3_9[8];
+	assign dm_int_st4_9_tmp[8] = dm_int_st3_9[9];
 	// Bit 10
-	full_adder FA360(.a(dm_int_st3_10[0]), .b(dm_int_st3_10[1]), .cin(dm_int_st3_10[2]), .s(dm_int_st4_10[1]), .cout(dm_int_st4_11[0]));
-	half_adder HA21(.a(dm_int_st3_10[3]), .b(dm_int_st3_10[4]), .s(dm_int_st4_10[2]), .cout(dm_int_st4_11[1]));
-	assign dm_int_st4_10[3] = dm_int_st3_10[5];
-	assign dm_int_st4_10[4] = dm_int_st3_10[6];
-	assign dm_int_st4_10[5] = dm_int_st3_10[7];
-	assign dm_int_st4_10[6] = dm_int_st3_10[8];
-	assign dm_int_st4_10[7] = dm_int_st3_10[9];
-	assign dm_int_st4_10[8] = dm_int_st3_10[10];
+	full_adder FA360(.a(dm_int_st3_10[0]), .b(dm_int_st3_10[1]), .cin(dm_int_st3_10[2]), .s(dm_int_st4_10_tmp[1]), .cout(dm_int_st4_11_tmp[0]));
+	half_adder HA21(.a(dm_int_st3_10[3]), .b(dm_int_st3_10[4]), .s(dm_int_st4_10_tmp[2]), .cout(dm_int_st4_11_tmp[1]));
+	assign dm_int_st4_10_tmp[3] = dm_int_st3_10[5];
+	assign dm_int_st4_10_tmp[4] = dm_int_st3_10[6];
+	assign dm_int_st4_10_tmp[5] = dm_int_st3_10[7];
+	assign dm_int_st4_10_tmp[6] = dm_int_st3_10[8];
+	assign dm_int_st4_10_tmp[7] = dm_int_st3_10[9];
+	assign dm_int_st4_10_tmp[8] = dm_int_st3_10[10];
 	// Bit 11
-	full_adder FA361(.a(dm_int_st3_11[0]), .b(dm_int_st3_11[1]), .cin(dm_int_st3_11[2]), .s(dm_int_st4_11[2]), .cout(dm_int_st4_12[0]));
-	full_adder FA362(.a(dm_int_st3_11[3]), .b(dm_int_st3_11[4]), .cin(dm_int_st3_11[5]), .s(dm_int_st4_11[3]), .cout(dm_int_st4_12[1]));
-	half_adder HA22(.a(dm_int_st3_11[6]), .b(dm_int_st3_11[7]), .s(dm_int_st4_11[4]), .cout(dm_int_st4_12[2]));
-	assign dm_int_st4_11[5] = dm_int_st3_11[8];
-	assign dm_int_st4_11[6] = dm_int_st3_11[9];
-	assign dm_int_st4_11[7] = dm_int_st3_11[10];
-	assign dm_int_st4_11[8] = dm_int_st3_11[11];
+	full_adder FA361(.a(dm_int_st3_11[0]), .b(dm_int_st3_11[1]), .cin(dm_int_st3_11[2]), .s(dm_int_st4_11_tmp[2]), .cout(dm_int_st4_12_tmp[0]));
+	full_adder FA362(.a(dm_int_st3_11[3]), .b(dm_int_st3_11[4]), .cin(dm_int_st3_11[5]), .s(dm_int_st4_11_tmp[3]), .cout(dm_int_st4_12_tmp[1]));
+	half_adder HA22(.a(dm_int_st3_11[6]), .b(dm_int_st3_11[7]), .s(dm_int_st4_11_tmp[4]), .cout(dm_int_st4_12_tmp[2]));
+	assign dm_int_st4_11_tmp[5] = dm_int_st3_11[8];
+	assign dm_int_st4_11_tmp[6] = dm_int_st3_11[9];
+	assign dm_int_st4_11_tmp[7] = dm_int_st3_11[10];
+	assign dm_int_st4_11_tmp[8] = dm_int_st3_11[11];
 	// Bit 12
-	full_adder FA363(.a(dm_int_st3_12[0]), .b(dm_int_st3_12[1]), .cin(dm_int_st3_12[2]), .s(dm_int_st4_12[3]), .cout(dm_int_st4_13[0]));
-	full_adder FA364(.a(dm_int_st3_12[3]), .b(dm_int_st3_12[4]), .cin(dm_int_st3_12[5]), .s(dm_int_st4_12[4]), .cout(dm_int_st4_13[1]));
-	full_adder FA365(.a(dm_int_st3_12[6]), .b(dm_int_st3_12[7]), .cin(dm_int_st3_12[8]), .s(dm_int_st4_12[5]), .cout(dm_int_st4_13[2]));
-	half_adder HA23(.a(dm_int_st3_12[9]), .b(dm_int_st3_12[10]), .s(dm_int_st4_12[6]), .cout(dm_int_st4_13[3]));
-	assign dm_int_st4_12[7] = dm_int_st3_12[11];
-	assign dm_int_st4_12[8] = dm_int_st3_12[12];
+	full_adder FA363(.a(dm_int_st3_12[0]), .b(dm_int_st3_12[1]), .cin(dm_int_st3_12[2]), .s(dm_int_st4_12_tmp[3]), .cout(dm_int_st4_13_tmp[0]));
+	full_adder FA364(.a(dm_int_st3_12[3]), .b(dm_int_st3_12[4]), .cin(dm_int_st3_12[5]), .s(dm_int_st4_12_tmp[4]), .cout(dm_int_st4_13_tmp[1]));
+	full_adder FA365(.a(dm_int_st3_12[6]), .b(dm_int_st3_12[7]), .cin(dm_int_st3_12[8]), .s(dm_int_st4_12_tmp[5]), .cout(dm_int_st4_13_tmp[2]));
+	half_adder HA23(.a(dm_int_st3_12[9]), .b(dm_int_st3_12[10]), .s(dm_int_st4_12_tmp[6]), .cout(dm_int_st4_13_tmp[3]));
+	assign dm_int_st4_12_tmp[7] = dm_int_st3_12[11];
+	assign dm_int_st4_12_tmp[8] = dm_int_st3_12[12];
 	// Bit 13
-	full_adder FA366(.a(dm_int_st3_13[0]), .b(dm_int_st3_13[1]), .cin(dm_int_st3_13[2]), .s(dm_int_st4_13[4]), .cout(dm_int_st4_14[0]));
-	full_adder FA367(.a(dm_int_st3_13[3]), .b(dm_int_st3_13[4]), .cin(dm_int_st3_13[5]), .s(dm_int_st4_13[5]), .cout(dm_int_st4_14[1]));
-	full_adder FA368(.a(dm_int_st3_13[6]), .b(dm_int_st3_13[7]), .cin(dm_int_st3_13[8]), .s(dm_int_st4_13[6]), .cout(dm_int_st4_14[2]));
-	full_adder FA369(.a(dm_int_st3_13[9]), .b(dm_int_st3_13[10]), .cin(dm_int_st3_13[11]), .s(dm_int_st4_13[7]), .cout(dm_int_st4_14[3]));
-	assign dm_int_st4_13[8] = dm_int_st3_13[12];
+	full_adder FA366(.a(dm_int_st3_13[0]), .b(dm_int_st3_13[1]), .cin(dm_int_st3_13[2]), .s(dm_int_st4_13_tmp[4]), .cout(dm_int_st4_14_tmp[0]));
+	full_adder FA367(.a(dm_int_st3_13[3]), .b(dm_int_st3_13[4]), .cin(dm_int_st3_13[5]), .s(dm_int_st4_13_tmp[5]), .cout(dm_int_st4_14_tmp[1]));
+	full_adder FA368(.a(dm_int_st3_13[6]), .b(dm_int_st3_13[7]), .cin(dm_int_st3_13[8]), .s(dm_int_st4_13_tmp[6]), .cout(dm_int_st4_14_tmp[2]));
+	full_adder FA369(.a(dm_int_st3_13[9]), .b(dm_int_st3_13[10]), .cin(dm_int_st3_13[11]), .s(dm_int_st4_13_tmp[7]), .cout(dm_int_st4_14_tmp[3]));
+	assign dm_int_st4_13_tmp[8] = dm_int_st3_13[12];
 	// Bit 14
-	full_adder FA370(.a(dm_int_st3_14[0]), .b(dm_int_st3_14[1]), .cin(dm_int_st3_14[2]), .s(dm_int_st4_14[4]), .cout(dm_int_st4_15[0]));
-	full_adder FA371(.a(dm_int_st3_14[3]), .b(dm_int_st3_14[4]), .cin(dm_int_st3_14[5]), .s(dm_int_st4_14[5]), .cout(dm_int_st4_15[1]));
-	full_adder FA372(.a(dm_int_st3_14[6]), .b(dm_int_st3_14[7]), .cin(dm_int_st3_14[8]), .s(dm_int_st4_14[6]), .cout(dm_int_st4_15[2]));
-	full_adder FA373(.a(dm_int_st3_14[9]), .b(dm_int_st3_14[10]), .cin(dm_int_st3_14[11]), .s(dm_int_st4_14[7]), .cout(dm_int_st4_15[3]));
-	assign dm_int_st4_14[8] = dm_int_st3_14[12];
+	full_adder FA370(.a(dm_int_st3_14[0]), .b(dm_int_st3_14[1]), .cin(dm_int_st3_14[2]), .s(dm_int_st4_14_tmp[4]), .cout(dm_int_st4_15_tmp[0]));
+	full_adder FA371(.a(dm_int_st3_14[3]), .b(dm_int_st3_14[4]), .cin(dm_int_st3_14[5]), .s(dm_int_st4_14_tmp[5]), .cout(dm_int_st4_15_tmp[1]));
+	full_adder FA372(.a(dm_int_st3_14[6]), .b(dm_int_st3_14[7]), .cin(dm_int_st3_14[8]), .s(dm_int_st4_14_tmp[6]), .cout(dm_int_st4_15_tmp[2]));
+	full_adder FA373(.a(dm_int_st3_14[9]), .b(dm_int_st3_14[10]), .cin(dm_int_st3_14[11]), .s(dm_int_st4_14_tmp[7]), .cout(dm_int_st4_15_tmp[3]));
+	assign dm_int_st4_14_tmp[8] = dm_int_st3_14[12];
 	// Bit 15
-	full_adder FA374(.a(dm_int_st3_15[0]), .b(dm_int_st3_15[1]), .cin(dm_int_st3_15[2]), .s(dm_int_st4_15[4]), .cout(dm_int_st4_16[0]));
-	full_adder FA375(.a(dm_int_st3_15[3]), .b(dm_int_st3_15[4]), .cin(dm_int_st3_15[5]), .s(dm_int_st4_15[5]), .cout(dm_int_st4_16[1]));
-	full_adder FA376(.a(dm_int_st3_15[6]), .b(dm_int_st3_15[7]), .cin(dm_int_st3_15[8]), .s(dm_int_st4_15[6]), .cout(dm_int_st4_16[2]));
-	full_adder FA377(.a(dm_int_st3_15[9]), .b(dm_int_st3_15[10]), .cin(dm_int_st3_15[11]), .s(dm_int_st4_15[7]), .cout(dm_int_st4_16[3]));
-	assign dm_int_st4_15[8] = dm_int_st3_15[12];
+	full_adder FA374(.a(dm_int_st3_15[0]), .b(dm_int_st3_15[1]), .cin(dm_int_st3_15[2]), .s(dm_int_st4_15_tmp[4]), .cout(dm_int_st4_16_tmp[0]));
+	full_adder FA375(.a(dm_int_st3_15[3]), .b(dm_int_st3_15[4]), .cin(dm_int_st3_15[5]), .s(dm_int_st4_15_tmp[5]), .cout(dm_int_st4_16_tmp[1]));
+	full_adder FA376(.a(dm_int_st3_15[6]), .b(dm_int_st3_15[7]), .cin(dm_int_st3_15[8]), .s(dm_int_st4_15_tmp[6]), .cout(dm_int_st4_16_tmp[2]));
+	full_adder FA377(.a(dm_int_st3_15[9]), .b(dm_int_st3_15[10]), .cin(dm_int_st3_15[11]), .s(dm_int_st4_15_tmp[7]), .cout(dm_int_st4_16_tmp[3]));
+	assign dm_int_st4_15_tmp[8] = dm_int_st3_15[12];
 	// Bit 16
-	full_adder FA378(.a(dm_int_st3_16[0]), .b(dm_int_st3_16[1]), .cin(dm_int_st3_16[2]), .s(dm_int_st4_16[4]), .cout(dm_int_st4_17[0]));
-	full_adder FA379(.a(dm_int_st3_16[3]), .b(dm_int_st3_16[4]), .cin(dm_int_st3_16[5]), .s(dm_int_st4_16[5]), .cout(dm_int_st4_17[1]));
-	full_adder FA380(.a(dm_int_st3_16[6]), .b(dm_int_st3_16[7]), .cin(dm_int_st3_16[8]), .s(dm_int_st4_16[6]), .cout(dm_int_st4_17[2]));
-	full_adder FA381(.a(dm_int_st3_16[9]), .b(dm_int_st3_16[10]), .cin(dm_int_st3_16[11]), .s(dm_int_st4_16[7]), .cout(dm_int_st4_17[3]));
-	assign dm_int_st4_16[8] = dm_int_st3_16[12];
+	full_adder FA378(.a(dm_int_st3_16[0]), .b(dm_int_st3_16[1]), .cin(dm_int_st3_16[2]), .s(dm_int_st4_16_tmp[4]), .cout(dm_int_st4_17_tmp[0]));
+	full_adder FA379(.a(dm_int_st3_16[3]), .b(dm_int_st3_16[4]), .cin(dm_int_st3_16[5]), .s(dm_int_st4_16_tmp[5]), .cout(dm_int_st4_17_tmp[1]));
+	full_adder FA380(.a(dm_int_st3_16[6]), .b(dm_int_st3_16[7]), .cin(dm_int_st3_16[8]), .s(dm_int_st4_16_tmp[6]), .cout(dm_int_st4_17_tmp[2]));
+	full_adder FA381(.a(dm_int_st3_16[9]), .b(dm_int_st3_16[10]), .cin(dm_int_st3_16[11]), .s(dm_int_st4_16_tmp[7]), .cout(dm_int_st4_17_tmp[3]));
+	assign dm_int_st4_16_tmp[8] = dm_int_st3_16[12];
 	// Bit 17
-	full_adder FA382(.a(dm_int_st3_17[0]), .b(dm_int_st3_17[1]), .cin(dm_int_st3_17[2]), .s(dm_int_st4_17[4]), .cout(dm_int_st4_18[0]));
-	full_adder FA383(.a(dm_int_st3_17[3]), .b(dm_int_st3_17[4]), .cin(dm_int_st3_17[5]), .s(dm_int_st4_17[5]), .cout(dm_int_st4_18[1]));
-	full_adder FA384(.a(dm_int_st3_17[6]), .b(dm_int_st3_17[7]), .cin(dm_int_st3_17[8]), .s(dm_int_st4_17[6]), .cout(dm_int_st4_18[2]));
-	full_adder FA385(.a(dm_int_st3_17[9]), .b(dm_int_st3_17[10]), .cin(dm_int_st3_17[11]), .s(dm_int_st4_17[7]), .cout(dm_int_st4_18[3]));
-	assign dm_int_st4_17[8] = dm_int_st3_17[12];
+	full_adder FA382(.a(dm_int_st3_17[0]), .b(dm_int_st3_17[1]), .cin(dm_int_st3_17[2]), .s(dm_int_st4_17_tmp[4]), .cout(dm_int_st4_18_tmp[0]));
+	full_adder FA383(.a(dm_int_st3_17[3]), .b(dm_int_st3_17[4]), .cin(dm_int_st3_17[5]), .s(dm_int_st4_17_tmp[5]), .cout(dm_int_st4_18_tmp[1]));
+	full_adder FA384(.a(dm_int_st3_17[6]), .b(dm_int_st3_17[7]), .cin(dm_int_st3_17[8]), .s(dm_int_st4_17_tmp[6]), .cout(dm_int_st4_18_tmp[2]));
+	full_adder FA385(.a(dm_int_st3_17[9]), .b(dm_int_st3_17[10]), .cin(dm_int_st3_17[11]), .s(dm_int_st4_17_tmp[7]), .cout(dm_int_st4_18_tmp[3]));
+	assign dm_int_st4_17_tmp[8] = dm_int_st3_17[12];
 	// Bit 18
-	full_adder FA386(.a(dm_int_st3_18[0]), .b(dm_int_st3_18[1]), .cin(dm_int_st3_18[2]), .s(dm_int_st4_18[4]), .cout(dm_int_st4_19[0]));
-	full_adder FA387(.a(dm_int_st3_18[3]), .b(dm_int_st3_18[4]), .cin(dm_int_st3_18[5]), .s(dm_int_st4_18[5]), .cout(dm_int_st4_19[1]));
-	full_adder FA388(.a(dm_int_st3_18[6]), .b(dm_int_st3_18[7]), .cin(dm_int_st3_18[8]), .s(dm_int_st4_18[6]), .cout(dm_int_st4_19[2]));
-	full_adder FA389(.a(dm_int_st3_18[9]), .b(dm_int_st3_18[10]), .cin(dm_int_st3_18[11]), .s(dm_int_st4_18[7]), .cout(dm_int_st4_19[3]));
-	assign dm_int_st4_18[8] = dm_int_st3_18[12];
+	full_adder FA386(.a(dm_int_st3_18[0]), .b(dm_int_st3_18[1]), .cin(dm_int_st3_18[2]), .s(dm_int_st4_18_tmp[4]), .cout(dm_int_st4_19_tmp[0]));
+	full_adder FA387(.a(dm_int_st3_18[3]), .b(dm_int_st3_18[4]), .cin(dm_int_st3_18[5]), .s(dm_int_st4_18_tmp[5]), .cout(dm_int_st4_19_tmp[1]));
+	full_adder FA388(.a(dm_int_st3_18[6]), .b(dm_int_st3_18[7]), .cin(dm_int_st3_18[8]), .s(dm_int_st4_18_tmp[6]), .cout(dm_int_st4_19_tmp[2]));
+	full_adder FA389(.a(dm_int_st3_18[9]), .b(dm_int_st3_18[10]), .cin(dm_int_st3_18[11]), .s(dm_int_st4_18_tmp[7]), .cout(dm_int_st4_19_tmp[3]));
+	assign dm_int_st4_18_tmp[8] = dm_int_st3_18[12];
 	// Bit 19
-	full_adder FA390(.a(dm_int_st3_19[0]), .b(dm_int_st3_19[1]), .cin(dm_int_st3_19[2]), .s(dm_int_st4_19[4]), .cout(dm_int_st4_20[0]));
-	full_adder FA391(.a(dm_int_st3_19[3]), .b(dm_int_st3_19[4]), .cin(dm_int_st3_19[5]), .s(dm_int_st4_19[5]), .cout(dm_int_st4_20[1]));
-	full_adder FA392(.a(dm_int_st3_19[6]), .b(dm_int_st3_19[7]), .cin(dm_int_st3_19[8]), .s(dm_int_st4_19[6]), .cout(dm_int_st4_20[2]));
-	full_adder FA393(.a(dm_int_st3_19[9]), .b(dm_int_st3_19[10]), .cin(dm_int_st3_19[11]), .s(dm_int_st4_19[7]), .cout(dm_int_st4_20[3]));
-	assign dm_int_st4_19[8] = dm_int_st3_19[12];
+	full_adder FA390(.a(dm_int_st3_19[0]), .b(dm_int_st3_19[1]), .cin(dm_int_st3_19[2]), .s(dm_int_st4_19_tmp[4]), .cout(dm_int_st4_20_tmp[0]));
+	full_adder FA391(.a(dm_int_st3_19[3]), .b(dm_int_st3_19[4]), .cin(dm_int_st3_19[5]), .s(dm_int_st4_19_tmp[5]), .cout(dm_int_st4_20_tmp[1]));
+	full_adder FA392(.a(dm_int_st3_19[6]), .b(dm_int_st3_19[7]), .cin(dm_int_st3_19[8]), .s(dm_int_st4_19_tmp[6]), .cout(dm_int_st4_20_tmp[2]));
+	full_adder FA393(.a(dm_int_st3_19[9]), .b(dm_int_st3_19[10]), .cin(dm_int_st3_19[11]), .s(dm_int_st4_19_tmp[7]), .cout(dm_int_st4_20_tmp[3]));
+	assign dm_int_st4_19_tmp[8] = dm_int_st3_19[12];
 	// Bit 20
-	full_adder FA394(.a(dm_int_st3_20[0]), .b(dm_int_st3_20[1]), .cin(dm_int_st3_20[2]), .s(dm_int_st4_20[4]), .cout(dm_int_st4_21[0]));
-	full_adder FA395(.a(dm_int_st3_20[3]), .b(dm_int_st3_20[4]), .cin(dm_int_st3_20[5]), .s(dm_int_st4_20[5]), .cout(dm_int_st4_21[1]));
-	full_adder FA396(.a(dm_int_st3_20[6]), .b(dm_int_st3_20[7]), .cin(dm_int_st3_20[8]), .s(dm_int_st4_20[6]), .cout(dm_int_st4_21[2]));
-	full_adder FA397(.a(dm_int_st3_20[9]), .b(dm_int_st3_20[10]), .cin(dm_int_st3_20[11]), .s(dm_int_st4_20[7]), .cout(dm_int_st4_21[3]));
-	assign dm_int_st4_20[8] = dm_int_st3_20[12];
+	full_adder FA394(.a(dm_int_st3_20[0]), .b(dm_int_st3_20[1]), .cin(dm_int_st3_20[2]), .s(dm_int_st4_20_tmp[4]), .cout(dm_int_st4_21_tmp[0]));
+	full_adder FA395(.a(dm_int_st3_20[3]), .b(dm_int_st3_20[4]), .cin(dm_int_st3_20[5]), .s(dm_int_st4_20_tmp[5]), .cout(dm_int_st4_21_tmp[1]));
+	full_adder FA396(.a(dm_int_st3_20[6]), .b(dm_int_st3_20[7]), .cin(dm_int_st3_20[8]), .s(dm_int_st4_20_tmp[6]), .cout(dm_int_st4_21_tmp[2]));
+	full_adder FA397(.a(dm_int_st3_20[9]), .b(dm_int_st3_20[10]), .cin(dm_int_st3_20[11]), .s(dm_int_st4_20_tmp[7]), .cout(dm_int_st4_21_tmp[3]));
+	assign dm_int_st4_20_tmp[8] = dm_int_st3_20[12];
 	// Bit 21
-	full_adder FA398(.a(dm_int_st3_21[0]), .b(dm_int_st3_21[1]), .cin(dm_int_st3_21[2]), .s(dm_int_st4_21[4]), .cout(dm_int_st4_22[0]));
-	full_adder FA399(.a(dm_int_st3_21[3]), .b(dm_int_st3_21[4]), .cin(dm_int_st3_21[5]), .s(dm_int_st4_21[5]), .cout(dm_int_st4_22[1]));
-	full_adder FA400(.a(dm_int_st3_21[6]), .b(dm_int_st3_21[7]), .cin(dm_int_st3_21[8]), .s(dm_int_st4_21[6]), .cout(dm_int_st4_22[2]));
-	full_adder FA401(.a(dm_int_st3_21[9]), .b(dm_int_st3_21[10]), .cin(dm_int_st3_21[11]), .s(dm_int_st4_21[7]), .cout(dm_int_st4_22[3]));
-	assign dm_int_st4_21[8] = dm_int_st3_21[12];
+	full_adder FA398(.a(dm_int_st3_21[0]), .b(dm_int_st3_21[1]), .cin(dm_int_st3_21[2]), .s(dm_int_st4_21_tmp[4]), .cout(dm_int_st4_22_tmp[0]));
+	full_adder FA399(.a(dm_int_st3_21[3]), .b(dm_int_st3_21[4]), .cin(dm_int_st3_21[5]), .s(dm_int_st4_21_tmp[5]), .cout(dm_int_st4_22_tmp[1]));
+	full_adder FA400(.a(dm_int_st3_21[6]), .b(dm_int_st3_21[7]), .cin(dm_int_st3_21[8]), .s(dm_int_st4_21_tmp[6]), .cout(dm_int_st4_22_tmp[2]));
+	full_adder FA401(.a(dm_int_st3_21[9]), .b(dm_int_st3_21[10]), .cin(dm_int_st3_21[11]), .s(dm_int_st4_21_tmp[7]), .cout(dm_int_st4_22_tmp[3]));
+	assign dm_int_st4_21_tmp[8] = dm_int_st3_21[12];
 	// Bit 22
-	full_adder FA402(.a(dm_int_st3_22[0]), .b(dm_int_st3_22[1]), .cin(dm_int_st3_22[2]), .s(dm_int_st4_22[4]), .cout(dm_int_st4_23[0]));
-	full_adder FA403(.a(dm_int_st3_22[3]), .b(dm_int_st3_22[4]), .cin(dm_int_st3_22[5]), .s(dm_int_st4_22[5]), .cout(dm_int_st4_23[1]));
-	full_adder FA404(.a(dm_int_st3_22[6]), .b(dm_int_st3_22[7]), .cin(dm_int_st3_22[8]), .s(dm_int_st4_22[6]), .cout(dm_int_st4_23[2]));
-	full_adder FA405(.a(dm_int_st3_22[9]), .b(dm_int_st3_22[10]), .cin(dm_int_st3_22[11]), .s(dm_int_st4_22[7]), .cout(dm_int_st4_23[3]));
-	assign dm_int_st4_22[8] = dm_int_st3_22[12];
+	full_adder FA402(.a(dm_int_st3_22[0]), .b(dm_int_st3_22[1]), .cin(dm_int_st3_22[2]), .s(dm_int_st4_22_tmp[4]), .cout(dm_int_st4_23_tmp[0]));
+	full_adder FA403(.a(dm_int_st3_22[3]), .b(dm_int_st3_22[4]), .cin(dm_int_st3_22[5]), .s(dm_int_st4_22_tmp[5]), .cout(dm_int_st4_23_tmp[1]));
+	full_adder FA404(.a(dm_int_st3_22[6]), .b(dm_int_st3_22[7]), .cin(dm_int_st3_22[8]), .s(dm_int_st4_22_tmp[6]), .cout(dm_int_st4_23_tmp[2]));
+	full_adder FA405(.a(dm_int_st3_22[9]), .b(dm_int_st3_22[10]), .cin(dm_int_st3_22[11]), .s(dm_int_st4_22_tmp[7]), .cout(dm_int_st4_23_tmp[3]));
+	assign dm_int_st4_22_tmp[8] = dm_int_st3_22[12];
 	// Bit 23
-	full_adder FA406(.a(dm_int_st3_23[0]), .b(dm_int_st3_23[1]), .cin(dm_int_st3_23[2]), .s(dm_int_st4_23[4]), .cout(dm_int_st4_24[0]));
-	full_adder FA407(.a(dm_int_st3_23[3]), .b(dm_int_st3_23[4]), .cin(dm_int_st3_23[5]), .s(dm_int_st4_23[5]), .cout(dm_int_st4_24[1]));
-	full_adder FA408(.a(dm_int_st3_23[6]), .b(dm_int_st3_23[7]), .cin(dm_int_st3_23[8]), .s(dm_int_st4_23[6]), .cout(dm_int_st4_24[2]));
-	full_adder FA409(.a(dm_int_st3_23[9]), .b(dm_int_st3_23[10]), .cin(dm_int_st3_23[11]), .s(dm_int_st4_23[7]), .cout(dm_int_st4_24[3]));
-	assign dm_int_st4_23[8] = dm_int_st3_23[12];
+	full_adder FA406(.a(dm_int_st3_23[0]), .b(dm_int_st3_23[1]), .cin(dm_int_st3_23[2]), .s(dm_int_st4_23_tmp[4]), .cout(dm_int_st4_24_tmp[0]));
+	full_adder FA407(.a(dm_int_st3_23[3]), .b(dm_int_st3_23[4]), .cin(dm_int_st3_23[5]), .s(dm_int_st4_23_tmp[5]), .cout(dm_int_st4_24_tmp[1]));
+	full_adder FA408(.a(dm_int_st3_23[6]), .b(dm_int_st3_23[7]), .cin(dm_int_st3_23[8]), .s(dm_int_st4_23_tmp[6]), .cout(dm_int_st4_24_tmp[2]));
+	full_adder FA409(.a(dm_int_st3_23[9]), .b(dm_int_st3_23[10]), .cin(dm_int_st3_23[11]), .s(dm_int_st4_23_tmp[7]), .cout(dm_int_st4_24_tmp[3]));
+	assign dm_int_st4_23_tmp[8] = dm_int_st3_23[12];
 	// Bit 24
-	full_adder FA410(.a(dm_int_st3_24[0]), .b(dm_int_st3_24[1]), .cin(dm_int_st3_24[2]), .s(dm_int_st4_24[4]), .cout(dm_int_st4_25[0]));
-	full_adder FA411(.a(dm_int_st3_24[3]), .b(dm_int_st3_24[4]), .cin(dm_int_st3_24[5]), .s(dm_int_st4_24[5]), .cout(dm_int_st4_25[1]));
-	full_adder FA412(.a(dm_int_st3_24[6]), .b(dm_int_st3_24[7]), .cin(dm_int_st3_24[8]), .s(dm_int_st4_24[6]), .cout(dm_int_st4_25[2]));
-	full_adder FA413(.a(dm_int_st3_24[9]), .b(dm_int_st3_24[10]), .cin(dm_int_st3_24[11]), .s(dm_int_st4_24[7]), .cout(dm_int_st4_25[3]));
-	assign dm_int_st4_24[8] = dm_int_st3_24[12];
+	full_adder FA410(.a(dm_int_st3_24[0]), .b(dm_int_st3_24[1]), .cin(dm_int_st3_24[2]), .s(dm_int_st4_24_tmp[4]), .cout(dm_int_st4_25_tmp[0]));
+	full_adder FA411(.a(dm_int_st3_24[3]), .b(dm_int_st3_24[4]), .cin(dm_int_st3_24[5]), .s(dm_int_st4_24_tmp[5]), .cout(dm_int_st4_25_tmp[1]));
+	full_adder FA412(.a(dm_int_st3_24[6]), .b(dm_int_st3_24[7]), .cin(dm_int_st3_24[8]), .s(dm_int_st4_24_tmp[6]), .cout(dm_int_st4_25_tmp[2]));
+	full_adder FA413(.a(dm_int_st3_24[9]), .b(dm_int_st3_24[10]), .cin(dm_int_st3_24[11]), .s(dm_int_st4_24_tmp[7]), .cout(dm_int_st4_25_tmp[3]));
+	assign dm_int_st4_24_tmp[8] = dm_int_st3_24[12];
 	// Bit 25
-	full_adder FA414(.a(dm_int_st3_25[0]), .b(dm_int_st3_25[1]), .cin(dm_int_st3_25[2]), .s(dm_int_st4_25[4]), .cout(dm_int_st4_26[0]));
-	full_adder FA415(.a(dm_int_st3_25[3]), .b(dm_int_st3_25[4]), .cin(dm_int_st3_25[5]), .s(dm_int_st4_25[5]), .cout(dm_int_st4_26[1]));
-	full_adder FA416(.a(dm_int_st3_25[6]), .b(dm_int_st3_25[7]), .cin(dm_int_st3_25[8]), .s(dm_int_st4_25[6]), .cout(dm_int_st4_26[2]));
-	full_adder FA417(.a(dm_int_st3_25[9]), .b(dm_int_st3_25[10]), .cin(dm_int_st3_25[11]), .s(dm_int_st4_25[7]), .cout(dm_int_st4_26[3]));
-	assign dm_int_st4_25[8] = dm_int_st3_25[12];
+	full_adder FA414(.a(dm_int_st3_25[0]), .b(dm_int_st3_25[1]), .cin(dm_int_st3_25[2]), .s(dm_int_st4_25_tmp[4]), .cout(dm_int_st4_26_tmp[0]));
+	full_adder FA415(.a(dm_int_st3_25[3]), .b(dm_int_st3_25[4]), .cin(dm_int_st3_25[5]), .s(dm_int_st4_25_tmp[5]), .cout(dm_int_st4_26_tmp[1]));
+	full_adder FA416(.a(dm_int_st3_25[6]), .b(dm_int_st3_25[7]), .cin(dm_int_st3_25[8]), .s(dm_int_st4_25_tmp[6]), .cout(dm_int_st4_26_tmp[2]));
+	full_adder FA417(.a(dm_int_st3_25[9]), .b(dm_int_st3_25[10]), .cin(dm_int_st3_25[11]), .s(dm_int_st4_25_tmp[7]), .cout(dm_int_st4_26_tmp[3]));
+	assign dm_int_st4_25_tmp[8] = dm_int_st3_25[12];
 	// Bit 26
-	full_adder FA418(.a(dm_int_st3_26[0]), .b(dm_int_st3_26[1]), .cin(dm_int_st3_26[2]), .s(dm_int_st4_26[4]), .cout(dm_int_st4_27[0]));
-	full_adder FA419(.a(dm_int_st3_26[3]), .b(dm_int_st3_26[4]), .cin(dm_int_st3_26[5]), .s(dm_int_st4_26[5]), .cout(dm_int_st4_27[1]));
-	full_adder FA420(.a(dm_int_st3_26[6]), .b(dm_int_st3_26[7]), .cin(dm_int_st3_26[8]), .s(dm_int_st4_26[6]), .cout(dm_int_st4_27[2]));
-	full_adder FA421(.a(dm_int_st3_26[9]), .b(dm_int_st3_26[10]), .cin(dm_int_st3_26[11]), .s(dm_int_st4_26[7]), .cout(dm_int_st4_27[3]));
-	assign dm_int_st4_26[8] = dm_int_st3_26[12];
+	full_adder FA418(.a(dm_int_st3_26[0]), .b(dm_int_st3_26[1]), .cin(dm_int_st3_26[2]), .s(dm_int_st4_26_tmp[4]), .cout(dm_int_st4_27_tmp[0]));
+	full_adder FA419(.a(dm_int_st3_26[3]), .b(dm_int_st3_26[4]), .cin(dm_int_st3_26[5]), .s(dm_int_st4_26_tmp[5]), .cout(dm_int_st4_27_tmp[1]));
+	full_adder FA420(.a(dm_int_st3_26[6]), .b(dm_int_st3_26[7]), .cin(dm_int_st3_26[8]), .s(dm_int_st4_26_tmp[6]), .cout(dm_int_st4_27_tmp[2]));
+	full_adder FA421(.a(dm_int_st3_26[9]), .b(dm_int_st3_26[10]), .cin(dm_int_st3_26[11]), .s(dm_int_st4_26_tmp[7]), .cout(dm_int_st4_27_tmp[3]));
+	assign dm_int_st4_26_tmp[8] = dm_int_st3_26[12];
 	// Bit 27
-	full_adder FA422(.a(dm_int_st3_27[0]), .b(dm_int_st3_27[1]), .cin(dm_int_st3_27[2]), .s(dm_int_st4_27[4]), .cout(dm_int_st4_28[0]));
-	full_adder FA423(.a(dm_int_st3_27[3]), .b(dm_int_st3_27[4]), .cin(dm_int_st3_27[5]), .s(dm_int_st4_27[5]), .cout(dm_int_st4_28[1]));
-	full_adder FA424(.a(dm_int_st3_27[6]), .b(dm_int_st3_27[7]), .cin(dm_int_st3_27[8]), .s(dm_int_st4_27[6]), .cout(dm_int_st4_28[2]));
-	full_adder FA425(.a(dm_int_st3_27[9]), .b(dm_int_st3_27[10]), .cin(dm_int_st3_27[11]), .s(dm_int_st4_27[7]), .cout(dm_int_st4_28[3]));
-	assign dm_int_st4_27[8] = dm_int_st3_27[12];
+	full_adder FA422(.a(dm_int_st3_27[0]), .b(dm_int_st3_27[1]), .cin(dm_int_st3_27[2]), .s(dm_int_st4_27_tmp[4]), .cout(dm_int_st4_28_tmp[0]));
+	full_adder FA423(.a(dm_int_st3_27[3]), .b(dm_int_st3_27[4]), .cin(dm_int_st3_27[5]), .s(dm_int_st4_27_tmp[5]), .cout(dm_int_st4_28_tmp[1]));
+	full_adder FA424(.a(dm_int_st3_27[6]), .b(dm_int_st3_27[7]), .cin(dm_int_st3_27[8]), .s(dm_int_st4_27_tmp[6]), .cout(dm_int_st4_28_tmp[2]));
+	full_adder FA425(.a(dm_int_st3_27[9]), .b(dm_int_st3_27[10]), .cin(dm_int_st3_27[11]), .s(dm_int_st4_27_tmp[7]), .cout(dm_int_st4_28_tmp[3]));
+	assign dm_int_st4_27_tmp[8] = dm_int_st3_27[12];
 	// Bit 28
-	full_adder FA426(.a(dm_int_st3_28[0]), .b(dm_int_st3_28[1]), .cin(dm_int_st3_28[2]), .s(dm_int_st4_28[4]), .cout(dm_int_st4_29[0]));
-	full_adder FA427(.a(dm_int_st3_28[3]), .b(dm_int_st3_28[4]), .cin(dm_int_st3_28[5]), .s(dm_int_st4_28[5]), .cout(dm_int_st4_29[1]));
-	full_adder FA428(.a(dm_int_st3_28[6]), .b(dm_int_st3_28[7]), .cin(dm_int_st3_28[8]), .s(dm_int_st4_28[6]), .cout(dm_int_st4_29[2]));
-	full_adder FA429(.a(dm_int_st3_28[9]), .b(dm_int_st3_28[10]), .cin(dm_int_st3_28[11]), .s(dm_int_st4_28[7]), .cout(dm_int_st4_29[3]));
-	assign dm_int_st4_28[8] = dm_int_st3_28[12];
+	full_adder FA426(.a(dm_int_st3_28[0]), .b(dm_int_st3_28[1]), .cin(dm_int_st3_28[2]), .s(dm_int_st4_28_tmp[4]), .cout(dm_int_st4_29_tmp[0]));
+	full_adder FA427(.a(dm_int_st3_28[3]), .b(dm_int_st3_28[4]), .cin(dm_int_st3_28[5]), .s(dm_int_st4_28_tmp[5]), .cout(dm_int_st4_29_tmp[1]));
+	full_adder FA428(.a(dm_int_st3_28[6]), .b(dm_int_st3_28[7]), .cin(dm_int_st3_28[8]), .s(dm_int_st4_28_tmp[6]), .cout(dm_int_st4_29_tmp[2]));
+	full_adder FA429(.a(dm_int_st3_28[9]), .b(dm_int_st3_28[10]), .cin(dm_int_st3_28[11]), .s(dm_int_st4_28_tmp[7]), .cout(dm_int_st4_29_tmp[3]));
+	assign dm_int_st4_28_tmp[8] = dm_int_st3_28[12];
 	// Bit 29
-	full_adder FA430(.a(dm_int_st3_29[0]), .b(dm_int_st3_29[1]), .cin(dm_int_st3_29[2]), .s(dm_int_st4_29[4]), .cout(dm_int_st4_30[0]));
-	full_adder FA431(.a(dm_int_st3_29[3]), .b(dm_int_st3_29[4]), .cin(dm_int_st3_29[5]), .s(dm_int_st4_29[5]), .cout(dm_int_st4_30[1]));
-	full_adder FA432(.a(dm_int_st3_29[6]), .b(dm_int_st3_29[7]), .cin(dm_int_st3_29[8]), .s(dm_int_st4_29[6]), .cout(dm_int_st4_30[2]));
-	full_adder FA433(.a(dm_int_st3_29[9]), .b(dm_int_st3_29[10]), .cin(dm_int_st3_29[11]), .s(dm_int_st4_29[7]), .cout(dm_int_st4_30[3]));
-	assign dm_int_st4_29[8] = dm_int_st3_29[12];
+	full_adder FA430(.a(dm_int_st3_29[0]), .b(dm_int_st3_29[1]), .cin(dm_int_st3_29[2]), .s(dm_int_st4_29_tmp[4]), .cout(dm_int_st4_30_tmp[0]));
+	full_adder FA431(.a(dm_int_st3_29[3]), .b(dm_int_st3_29[4]), .cin(dm_int_st3_29[5]), .s(dm_int_st4_29_tmp[5]), .cout(dm_int_st4_30_tmp[1]));
+	full_adder FA432(.a(dm_int_st3_29[6]), .b(dm_int_st3_29[7]), .cin(dm_int_st3_29[8]), .s(dm_int_st4_29_tmp[6]), .cout(dm_int_st4_30_tmp[2]));
+	full_adder FA433(.a(dm_int_st3_29[9]), .b(dm_int_st3_29[10]), .cin(dm_int_st3_29[11]), .s(dm_int_st4_29_tmp[7]), .cout(dm_int_st4_30_tmp[3]));
+	assign dm_int_st4_29_tmp[8] = dm_int_st3_29[12];
 	// Bit 30
-	full_adder FA434(.a(dm_int_st3_30[0]), .b(dm_int_st3_30[1]), .cin(dm_int_st3_30[2]), .s(dm_int_st4_30[4]), .cout(dm_int_st4_31[0]));
-	full_adder FA435(.a(dm_int_st3_30[3]), .b(dm_int_st3_30[4]), .cin(dm_int_st3_30[5]), .s(dm_int_st4_30[5]), .cout(dm_int_st4_31[1]));
-	full_adder FA436(.a(dm_int_st3_30[6]), .b(dm_int_st3_30[7]), .cin(dm_int_st3_30[8]), .s(dm_int_st4_30[6]), .cout(dm_int_st4_31[2]));
-	full_adder FA437(.a(dm_int_st3_30[9]), .b(dm_int_st3_30[10]), .cin(dm_int_st3_30[11]), .s(dm_int_st4_30[7]), .cout(dm_int_st4_31[3]));
-	assign dm_int_st4_30[8] = dm_int_st3_30[12];
+	full_adder FA434(.a(dm_int_st3_30[0]), .b(dm_int_st3_30[1]), .cin(dm_int_st3_30[2]), .s(dm_int_st4_30_tmp[4]), .cout(dm_int_st4_31_tmp[0]));
+	full_adder FA435(.a(dm_int_st3_30[3]), .b(dm_int_st3_30[4]), .cin(dm_int_st3_30[5]), .s(dm_int_st4_30_tmp[5]), .cout(dm_int_st4_31_tmp[1]));
+	full_adder FA436(.a(dm_int_st3_30[6]), .b(dm_int_st3_30[7]), .cin(dm_int_st3_30[8]), .s(dm_int_st4_30_tmp[6]), .cout(dm_int_st4_31_tmp[2]));
+	full_adder FA437(.a(dm_int_st3_30[9]), .b(dm_int_st3_30[10]), .cin(dm_int_st3_30[11]), .s(dm_int_st4_30_tmp[7]), .cout(dm_int_st4_31_tmp[3]));
+	assign dm_int_st4_30_tmp[8] = dm_int_st3_30[12];
 	// Bit 31
-	full_adder FA438(.a(dm_int_st3_31[0]), .b(dm_int_st3_31[1]), .cin(dm_int_st3_31[2]), .s(dm_int_st4_31[4]), .cout(dm_int_st4_32[0]));
-	full_adder FA439(.a(dm_int_st3_31[3]), .b(dm_int_st3_31[4]), .cin(dm_int_st3_31[5]), .s(dm_int_st4_31[5]), .cout(dm_int_st4_32[1]));
-	full_adder FA440(.a(dm_int_st3_31[6]), .b(dm_int_st3_31[7]), .cin(dm_int_st3_31[8]), .s(dm_int_st4_31[6]), .cout(dm_int_st4_32[2]));
-	full_adder FA441(.a(dm_int_st3_31[9]), .b(dm_int_st3_31[10]), .cin(dm_int_st3_31[11]), .s(dm_int_st4_31[7]), .cout(dm_int_st4_32[3]));
-	assign dm_int_st4_31[8] = dm_int_st3_31[12];
+	full_adder FA438(.a(dm_int_st3_31[0]), .b(dm_int_st3_31[1]), .cin(dm_int_st3_31[2]), .s(dm_int_st4_31_tmp[4]), .cout(dm_int_st4_32_tmp[0]));
+	full_adder FA439(.a(dm_int_st3_31[3]), .b(dm_int_st3_31[4]), .cin(dm_int_st3_31[5]), .s(dm_int_st4_31_tmp[5]), .cout(dm_int_st4_32_tmp[1]));
+	full_adder FA440(.a(dm_int_st3_31[6]), .b(dm_int_st3_31[7]), .cin(dm_int_st3_31[8]), .s(dm_int_st4_31_tmp[6]), .cout(dm_int_st4_32_tmp[2]));
+	full_adder FA441(.a(dm_int_st3_31[9]), .b(dm_int_st3_31[10]), .cin(dm_int_st3_31[11]), .s(dm_int_st4_31_tmp[7]), .cout(dm_int_st4_32_tmp[3]));
+	assign dm_int_st4_31_tmp[8] = dm_int_st3_31[12];
 	// Bit 32
-	full_adder FA442(.a(dm_int_st3_32[0]), .b(dm_int_st3_32[1]), .cin(dm_int_st3_32[2]), .s(dm_int_st4_32[4]), .cout(dm_int_st4_33[0]));
-	full_adder FA443(.a(dm_int_st3_32[3]), .b(dm_int_st3_32[4]), .cin(dm_int_st3_32[5]), .s(dm_int_st4_32[5]), .cout(dm_int_st4_33[1]));
-	full_adder FA444(.a(dm_int_st3_32[6]), .b(dm_int_st3_32[7]), .cin(dm_int_st3_32[8]), .s(dm_int_st4_32[6]), .cout(dm_int_st4_33[2]));
-	full_adder FA445(.a(dm_int_st3_32[9]), .b(dm_int_st3_32[10]), .cin(dm_int_st3_32[11]), .s(dm_int_st4_32[7]), .cout(dm_int_st4_33[3]));
-	assign dm_int_st4_32[8] = dm_int_st3_32[12];
+	full_adder FA442(.a(dm_int_st3_32[0]), .b(dm_int_st3_32[1]), .cin(dm_int_st3_32[2]), .s(dm_int_st4_32_tmp[4]), .cout(dm_int_st4_33_tmp[0]));
+	full_adder FA443(.a(dm_int_st3_32[3]), .b(dm_int_st3_32[4]), .cin(dm_int_st3_32[5]), .s(dm_int_st4_32_tmp[5]), .cout(dm_int_st4_33_tmp[1]));
+	full_adder FA444(.a(dm_int_st3_32[6]), .b(dm_int_st3_32[7]), .cin(dm_int_st3_32[8]), .s(dm_int_st4_32_tmp[6]), .cout(dm_int_st4_33_tmp[2]));
+	full_adder FA445(.a(dm_int_st3_32[9]), .b(dm_int_st3_32[10]), .cin(dm_int_st3_32[11]), .s(dm_int_st4_32_tmp[7]), .cout(dm_int_st4_33_tmp[3]));
+	assign dm_int_st4_32_tmp[8] = dm_int_st3_32[12];
 	// Bit 33
-	full_adder FA446(.a(dm_int_st3_33[0]), .b(dm_int_st3_33[1]), .cin(dm_int_st3_33[2]), .s(dm_int_st4_33[4]), .cout(dm_int_st4_34[0]));
-	full_adder FA447(.a(dm_int_st3_33[3]), .b(dm_int_st3_33[4]), .cin(dm_int_st3_33[5]), .s(dm_int_st4_33[5]), .cout(dm_int_st4_34[1]));
-	full_adder FA448(.a(dm_int_st3_33[6]), .b(dm_int_st3_33[7]), .cin(dm_int_st3_33[8]), .s(dm_int_st4_33[6]), .cout(dm_int_st4_34[2]));
-	full_adder FA449(.a(dm_int_st3_33[9]), .b(dm_int_st3_33[10]), .cin(dm_int_st3_33[11]), .s(dm_int_st4_33[7]), .cout(dm_int_st4_34[3]));
-	assign dm_int_st4_33[8] = dm_int_st3_33[12];
+	full_adder FA446(.a(dm_int_st3_33[0]), .b(dm_int_st3_33[1]), .cin(dm_int_st3_33[2]), .s(dm_int_st4_33_tmp[4]), .cout(dm_int_st4_34_tmp[0]));
+	full_adder FA447(.a(dm_int_st3_33[3]), .b(dm_int_st3_33[4]), .cin(dm_int_st3_33[5]), .s(dm_int_st4_33_tmp[5]), .cout(dm_int_st4_34_tmp[1]));
+	full_adder FA448(.a(dm_int_st3_33[6]), .b(dm_int_st3_33[7]), .cin(dm_int_st3_33[8]), .s(dm_int_st4_33_tmp[6]), .cout(dm_int_st4_34_tmp[2]));
+	full_adder FA449(.a(dm_int_st3_33[9]), .b(dm_int_st3_33[10]), .cin(dm_int_st3_33[11]), .s(dm_int_st4_33_tmp[7]), .cout(dm_int_st4_34_tmp[3]));
+	assign dm_int_st4_33_tmp[8] = dm_int_st3_33[12];
 	// Bit 34
-	full_adder FA450(.a(dm_int_st3_34[0]), .b(dm_int_st3_34[1]), .cin(dm_int_st3_34[2]), .s(dm_int_st4_34[4]), .cout(dm_int_st4_35[0]));
-	full_adder FA451(.a(dm_int_st3_34[3]), .b(dm_int_st3_34[4]), .cin(dm_int_st3_34[5]), .s(dm_int_st4_34[5]), .cout(dm_int_st4_35[1]));
-	full_adder FA452(.a(dm_int_st3_34[6]), .b(dm_int_st3_34[7]), .cin(dm_int_st3_34[8]), .s(dm_int_st4_34[6]), .cout(dm_int_st4_35[2]));
-	full_adder FA453(.a(dm_int_st3_34[9]), .b(dm_int_st3_34[10]), .cin(dm_int_st3_34[11]), .s(dm_int_st4_34[7]), .cout(dm_int_st4_35[3]));
-	assign dm_int_st4_34[8] = dm_int_st3_34[12];
+	full_adder FA450(.a(dm_int_st3_34[0]), .b(dm_int_st3_34[1]), .cin(dm_int_st3_34[2]), .s(dm_int_st4_34_tmp[4]), .cout(dm_int_st4_35_tmp[0]));
+	full_adder FA451(.a(dm_int_st3_34[3]), .b(dm_int_st3_34[4]), .cin(dm_int_st3_34[5]), .s(dm_int_st4_34_tmp[5]), .cout(dm_int_st4_35_tmp[1]));
+	full_adder FA452(.a(dm_int_st3_34[6]), .b(dm_int_st3_34[7]), .cin(dm_int_st3_34[8]), .s(dm_int_st4_34_tmp[6]), .cout(dm_int_st4_35_tmp[2]));
+	full_adder FA453(.a(dm_int_st3_34[9]), .b(dm_int_st3_34[10]), .cin(dm_int_st3_34[11]), .s(dm_int_st4_34_tmp[7]), .cout(dm_int_st4_35_tmp[3]));
+	assign dm_int_st4_34_tmp[8] = dm_int_st3_34[12];
 	// Bit 35
-	full_adder FA454(.a(dm_int_st3_35[0]), .b(dm_int_st3_35[1]), .cin(dm_int_st3_35[2]), .s(dm_int_st4_35[4]), .cout(dm_int_st4_36[0]));
-	full_adder FA455(.a(dm_int_st3_35[3]), .b(dm_int_st3_35[4]), .cin(dm_int_st3_35[5]), .s(dm_int_st4_35[5]), .cout(dm_int_st4_36[1]));
-	full_adder FA456(.a(dm_int_st3_35[6]), .b(dm_int_st3_35[7]), .cin(dm_int_st3_35[8]), .s(dm_int_st4_35[6]), .cout(dm_int_st4_36[2]));
-	full_adder FA457(.a(dm_int_st3_35[9]), .b(dm_int_st3_35[10]), .cin(dm_int_st3_35[11]), .s(dm_int_st4_35[7]), .cout(dm_int_st4_36[3]));
-	assign dm_int_st4_35[8] = dm_int_st3_35[12];
+	full_adder FA454(.a(dm_int_st3_35[0]), .b(dm_int_st3_35[1]), .cin(dm_int_st3_35[2]), .s(dm_int_st4_35_tmp[4]), .cout(dm_int_st4_36_tmp[0]));
+	full_adder FA455(.a(dm_int_st3_35[3]), .b(dm_int_st3_35[4]), .cin(dm_int_st3_35[5]), .s(dm_int_st4_35_tmp[5]), .cout(dm_int_st4_36_tmp[1]));
+	full_adder FA456(.a(dm_int_st3_35[6]), .b(dm_int_st3_35[7]), .cin(dm_int_st3_35[8]), .s(dm_int_st4_35_tmp[6]), .cout(dm_int_st4_36_tmp[2]));
+	full_adder FA457(.a(dm_int_st3_35[9]), .b(dm_int_st3_35[10]), .cin(dm_int_st3_35[11]), .s(dm_int_st4_35_tmp[7]), .cout(dm_int_st4_36_tmp[3]));
+	assign dm_int_st4_35_tmp[8] = dm_int_st3_35[12];
 	// Bit 36
-	full_adder FA458(.a(dm_int_st3_36[0]), .b(dm_int_st3_36[1]), .cin(dm_int_st3_36[2]), .s(dm_int_st4_36[4]), .cout(dm_int_st4_37[0]));
-	full_adder FA459(.a(dm_int_st3_36[3]), .b(dm_int_st3_36[4]), .cin(dm_int_st3_36[5]), .s(dm_int_st4_36[5]), .cout(dm_int_st4_37[1]));
-	full_adder FA460(.a(dm_int_st3_36[6]), .b(dm_int_st3_36[7]), .cin(dm_int_st3_36[8]), .s(dm_int_st4_36[6]), .cout(dm_int_st4_37[2]));
-	full_adder FA461(.a(dm_int_st3_36[9]), .b(dm_int_st3_36[10]), .cin(dm_int_st3_36[11]), .s(dm_int_st4_36[7]), .cout(dm_int_st4_37[3]));
-	assign dm_int_st4_36[8] = dm_int_st3_36[12];
+	full_adder FA458(.a(dm_int_st3_36[0]), .b(dm_int_st3_36[1]), .cin(dm_int_st3_36[2]), .s(dm_int_st4_36_tmp[4]), .cout(dm_int_st4_37_tmp[0]));
+	full_adder FA459(.a(dm_int_st3_36[3]), .b(dm_int_st3_36[4]), .cin(dm_int_st3_36[5]), .s(dm_int_st4_36_tmp[5]), .cout(dm_int_st4_37_tmp[1]));
+	full_adder FA460(.a(dm_int_st3_36[6]), .b(dm_int_st3_36[7]), .cin(dm_int_st3_36[8]), .s(dm_int_st4_36_tmp[6]), .cout(dm_int_st4_37_tmp[2]));
+	full_adder FA461(.a(dm_int_st3_36[9]), .b(dm_int_st3_36[10]), .cin(dm_int_st3_36[11]), .s(dm_int_st4_36_tmp[7]), .cout(dm_int_st4_37_tmp[3]));
+	assign dm_int_st4_36_tmp[8] = dm_int_st3_36[12];
 	// Bit 37
-	full_adder FA462(.a(dm_int_st3_37[0]), .b(dm_int_st3_37[1]), .cin(dm_int_st3_37[2]), .s(dm_int_st4_37[4]), .cout(dm_int_st4_38[0]));
-	full_adder FA463(.a(dm_int_st3_37[3]), .b(dm_int_st3_37[4]), .cin(dm_int_st3_37[5]), .s(dm_int_st4_37[5]), .cout(dm_int_st4_38[1]));
-	full_adder FA464(.a(dm_int_st3_37[6]), .b(dm_int_st3_37[7]), .cin(dm_int_st3_37[8]), .s(dm_int_st4_37[6]), .cout(dm_int_st4_38[2]));
-	full_adder FA465(.a(dm_int_st3_37[9]), .b(dm_int_st3_37[10]), .cin(dm_int_st3_37[11]), .s(dm_int_st4_37[7]), .cout(dm_int_st4_38[3]));
-	assign dm_int_st4_37[8] = dm_int_st3_37[12];
+	full_adder FA462(.a(dm_int_st3_37[0]), .b(dm_int_st3_37[1]), .cin(dm_int_st3_37[2]), .s(dm_int_st4_37_tmp[4]), .cout(dm_int_st4_38_tmp[0]));
+	full_adder FA463(.a(dm_int_st3_37[3]), .b(dm_int_st3_37[4]), .cin(dm_int_st3_37[5]), .s(dm_int_st4_37_tmp[5]), .cout(dm_int_st4_38_tmp[1]));
+	full_adder FA464(.a(dm_int_st3_37[6]), .b(dm_int_st3_37[7]), .cin(dm_int_st3_37[8]), .s(dm_int_st4_37_tmp[6]), .cout(dm_int_st4_38_tmp[2]));
+	full_adder FA465(.a(dm_int_st3_37[9]), .b(dm_int_st3_37[10]), .cin(dm_int_st3_37[11]), .s(dm_int_st4_37_tmp[7]), .cout(dm_int_st4_38_tmp[3]));
+	assign dm_int_st4_37_tmp[8] = dm_int_st3_37[12];
 	// Bit 38
-	full_adder FA466(.a(dm_int_st3_38[0]), .b(dm_int_st3_38[1]), .cin(dm_int_st3_38[2]), .s(dm_int_st4_38[4]), .cout(dm_int_st4_39[0]));
-	full_adder FA467(.a(dm_int_st3_38[3]), .b(dm_int_st3_38[4]), .cin(dm_int_st3_38[5]), .s(dm_int_st4_38[5]), .cout(dm_int_st4_39[1]));
-	full_adder FA468(.a(dm_int_st3_38[6]), .b(dm_int_st3_38[7]), .cin(dm_int_st3_38[8]), .s(dm_int_st4_38[6]), .cout(dm_int_st4_39[2]));
-	full_adder FA469(.a(dm_int_st3_38[9]), .b(dm_int_st3_38[10]), .cin(dm_int_st3_38[11]), .s(dm_int_st4_38[7]), .cout(dm_int_st4_39[3]));
-	assign dm_int_st4_38[8] = dm_int_st3_38[12];
+	full_adder FA466(.a(dm_int_st3_38[0]), .b(dm_int_st3_38[1]), .cin(dm_int_st3_38[2]), .s(dm_int_st4_38_tmp[4]), .cout(dm_int_st4_39_tmp[0]));
+	full_adder FA467(.a(dm_int_st3_38[3]), .b(dm_int_st3_38[4]), .cin(dm_int_st3_38[5]), .s(dm_int_st4_38_tmp[5]), .cout(dm_int_st4_39_tmp[1]));
+	full_adder FA468(.a(dm_int_st3_38[6]), .b(dm_int_st3_38[7]), .cin(dm_int_st3_38[8]), .s(dm_int_st4_38_tmp[6]), .cout(dm_int_st4_39_tmp[2]));
+	full_adder FA469(.a(dm_int_st3_38[9]), .b(dm_int_st3_38[10]), .cin(dm_int_st3_38[11]), .s(dm_int_st4_38_tmp[7]), .cout(dm_int_st4_39_tmp[3]));
+	assign dm_int_st4_38_tmp[8] = dm_int_st3_38[12];
 	// Bit 39
-	full_adder FA470(.a(dm_int_st3_39[0]), .b(dm_int_st3_39[1]), .cin(dm_int_st3_39[2]), .s(dm_int_st4_39[4]), .cout(dm_int_st4_40[0]));
-	full_adder FA471(.a(dm_int_st3_39[3]), .b(dm_int_st3_39[4]), .cin(dm_int_st3_39[5]), .s(dm_int_st4_39[5]), .cout(dm_int_st4_40[1]));
-	full_adder FA472(.a(dm_int_st3_39[6]), .b(dm_int_st3_39[7]), .cin(dm_int_st3_39[8]), .s(dm_int_st4_39[6]), .cout(dm_int_st4_40[2]));
-	full_adder FA473(.a(dm_int_st3_39[9]), .b(dm_int_st3_39[10]), .cin(dm_int_st3_39[11]), .s(dm_int_st4_39[7]), .cout(dm_int_st4_40[3]));
-	assign dm_int_st4_39[8] = dm_int_st3_39[12];
+	full_adder FA470(.a(dm_int_st3_39[0]), .b(dm_int_st3_39[1]), .cin(dm_int_st3_39[2]), .s(dm_int_st4_39_tmp[4]), .cout(dm_int_st4_40_tmp[0]));
+	full_adder FA471(.a(dm_int_st3_39[3]), .b(dm_int_st3_39[4]), .cin(dm_int_st3_39[5]), .s(dm_int_st4_39_tmp[5]), .cout(dm_int_st4_40_tmp[1]));
+	full_adder FA472(.a(dm_int_st3_39[6]), .b(dm_int_st3_39[7]), .cin(dm_int_st3_39[8]), .s(dm_int_st4_39_tmp[6]), .cout(dm_int_st4_40_tmp[2]));
+	full_adder FA473(.a(dm_int_st3_39[9]), .b(dm_int_st3_39[10]), .cin(dm_int_st3_39[11]), .s(dm_int_st4_39_tmp[7]), .cout(dm_int_st4_40_tmp[3]));
+	assign dm_int_st4_39_tmp[8] = dm_int_st3_39[12];
 	// Bit 40
-	full_adder FA474(.a(dm_int_st3_40[0]), .b(dm_int_st3_40[1]), .cin(dm_int_st3_40[2]), .s(dm_int_st4_40[4]), .cout(dm_int_st4_41[0]));
-	full_adder FA475(.a(dm_int_st3_40[3]), .b(dm_int_st3_40[4]), .cin(dm_int_st3_40[5]), .s(dm_int_st4_40[5]), .cout(dm_int_st4_41[1]));
-	full_adder FA476(.a(dm_int_st3_40[6]), .b(dm_int_st3_40[7]), .cin(dm_int_st3_40[8]), .s(dm_int_st4_40[6]), .cout(dm_int_st4_41[2]));
-	full_adder FA477(.a(dm_int_st3_40[9]), .b(dm_int_st3_40[10]), .cin(dm_int_st3_40[11]), .s(dm_int_st4_40[7]), .cout(dm_int_st4_41[3]));
-	assign dm_int_st4_40[8] = dm_int_st3_40[12];
+	full_adder FA474(.a(dm_int_st3_40[0]), .b(dm_int_st3_40[1]), .cin(dm_int_st3_40[2]), .s(dm_int_st4_40_tmp[4]), .cout(dm_int_st4_41_tmp[0]));
+	full_adder FA475(.a(dm_int_st3_40[3]), .b(dm_int_st3_40[4]), .cin(dm_int_st3_40[5]), .s(dm_int_st4_40_tmp[5]), .cout(dm_int_st4_41_tmp[1]));
+	full_adder FA476(.a(dm_int_st3_40[6]), .b(dm_int_st3_40[7]), .cin(dm_int_st3_40[8]), .s(dm_int_st4_40_tmp[6]), .cout(dm_int_st4_41_tmp[2]));
+	full_adder FA477(.a(dm_int_st3_40[9]), .b(dm_int_st3_40[10]), .cin(dm_int_st3_40[11]), .s(dm_int_st4_40_tmp[7]), .cout(dm_int_st4_41_tmp[3]));
+	assign dm_int_st4_40_tmp[8] = dm_int_st3_40[12];
 	// Bit 41
-	full_adder FA478(.a(dm_int_st3_41[0]), .b(dm_int_st3_41[1]), .cin(dm_int_st3_41[2]), .s(dm_int_st4_41[4]), .cout(dm_int_st4_42[0]));
-	full_adder FA479(.a(dm_int_st3_41[3]), .b(dm_int_st3_41[4]), .cin(dm_int_st3_41[5]), .s(dm_int_st4_41[5]), .cout(dm_int_st4_42[1]));
-	full_adder FA480(.a(dm_int_st3_41[6]), .b(dm_int_st3_41[7]), .cin(dm_int_st3_41[8]), .s(dm_int_st4_41[6]), .cout(dm_int_st4_42[2]));
-	full_adder FA481(.a(dm_int_st3_41[9]), .b(dm_int_st3_41[10]), .cin(dm_int_st3_41[11]), .s(dm_int_st4_41[7]), .cout(dm_int_st4_42[3]));
-	assign dm_int_st4_41[8] = dm_int_st3_41[12];
+	full_adder FA478(.a(dm_int_st3_41[0]), .b(dm_int_st3_41[1]), .cin(dm_int_st3_41[2]), .s(dm_int_st4_41_tmp[4]), .cout(dm_int_st4_42_tmp[0]));
+	full_adder FA479(.a(dm_int_st3_41[3]), .b(dm_int_st3_41[4]), .cin(dm_int_st3_41[5]), .s(dm_int_st4_41_tmp[5]), .cout(dm_int_st4_42_tmp[1]));
+	full_adder FA480(.a(dm_int_st3_41[6]), .b(dm_int_st3_41[7]), .cin(dm_int_st3_41[8]), .s(dm_int_st4_41_tmp[6]), .cout(dm_int_st4_42_tmp[2]));
+	full_adder FA481(.a(dm_int_st3_41[9]), .b(dm_int_st3_41[10]), .cin(dm_int_st3_41[11]), .s(dm_int_st4_41_tmp[7]), .cout(dm_int_st4_42_tmp[3]));
+	assign dm_int_st4_41_tmp[8] = dm_int_st3_41[12];
 	// Bit 42
-	full_adder FA482(.a(dm_int_st3_42[0]), .b(dm_int_st3_42[1]), .cin(dm_int_st3_42[2]), .s(dm_int_st4_42[4]), .cout(dm_int_st4_43[0]));
-	full_adder FA483(.a(dm_int_st3_42[3]), .b(dm_int_st3_42[4]), .cin(dm_int_st3_42[5]), .s(dm_int_st4_42[5]), .cout(dm_int_st4_43[1]));
-	full_adder FA484(.a(dm_int_st3_42[6]), .b(dm_int_st3_42[7]), .cin(dm_int_st3_42[8]), .s(dm_int_st4_42[6]), .cout(dm_int_st4_43[2]));
-	full_adder FA485(.a(dm_int_st3_42[9]), .b(dm_int_st3_42[10]), .cin(dm_int_st3_42[11]), .s(dm_int_st4_42[7]), .cout(dm_int_st4_43[3]));
-	assign dm_int_st4_42[8] = dm_int_st3_42[12];
+	full_adder FA482(.a(dm_int_st3_42[0]), .b(dm_int_st3_42[1]), .cin(dm_int_st3_42[2]), .s(dm_int_st4_42_tmp[4]), .cout(dm_int_st4_43_tmp[0]));
+	full_adder FA483(.a(dm_int_st3_42[3]), .b(dm_int_st3_42[4]), .cin(dm_int_st3_42[5]), .s(dm_int_st4_42_tmp[5]), .cout(dm_int_st4_43_tmp[1]));
+	full_adder FA484(.a(dm_int_st3_42[6]), .b(dm_int_st3_42[7]), .cin(dm_int_st3_42[8]), .s(dm_int_st4_42_tmp[6]), .cout(dm_int_st4_43_tmp[2]));
+	full_adder FA485(.a(dm_int_st3_42[9]), .b(dm_int_st3_42[10]), .cin(dm_int_st3_42[11]), .s(dm_int_st4_42_tmp[7]), .cout(dm_int_st4_43_tmp[3]));
+	assign dm_int_st4_42_tmp[8] = dm_int_st3_42[12];
 	// Bit 43
-	full_adder FA486(.a(dm_int_st3_43[0]), .b(dm_int_st3_43[1]), .cin(dm_int_st3_43[2]), .s(dm_int_st4_43[4]), .cout(dm_int_st4_44[0]));
-	full_adder FA487(.a(dm_int_st3_43[3]), .b(dm_int_st3_43[4]), .cin(dm_int_st3_43[5]), .s(dm_int_st4_43[5]), .cout(dm_int_st4_44[1]));
-	full_adder FA488(.a(dm_int_st3_43[6]), .b(dm_int_st3_43[7]), .cin(dm_int_st3_43[8]), .s(dm_int_st4_43[6]), .cout(dm_int_st4_44[2]));
-	full_adder FA489(.a(dm_int_st3_43[9]), .b(dm_int_st3_43[10]), .cin(dm_int_st3_43[11]), .s(dm_int_st4_43[7]), .cout(dm_int_st4_44[3]));
-	assign dm_int_st4_43[8] = dm_int_st3_43[12];
+	full_adder FA486(.a(dm_int_st3_43[0]), .b(dm_int_st3_43[1]), .cin(dm_int_st3_43[2]), .s(dm_int_st4_43_tmp[4]), .cout(dm_int_st4_44_tmp[0]));
+	full_adder FA487(.a(dm_int_st3_43[3]), .b(dm_int_st3_43[4]), .cin(dm_int_st3_43[5]), .s(dm_int_st4_43_tmp[5]), .cout(dm_int_st4_44_tmp[1]));
+	full_adder FA488(.a(dm_int_st3_43[6]), .b(dm_int_st3_43[7]), .cin(dm_int_st3_43[8]), .s(dm_int_st4_43_tmp[6]), .cout(dm_int_st4_44_tmp[2]));
+	full_adder FA489(.a(dm_int_st3_43[9]), .b(dm_int_st3_43[10]), .cin(dm_int_st3_43[11]), .s(dm_int_st4_43_tmp[7]), .cout(dm_int_st4_44_tmp[3]));
+	assign dm_int_st4_43_tmp[8] = dm_int_st3_43[12];
 	// Bit 44
-	full_adder FA490(.a(dm_int_st3_44[0]), .b(dm_int_st3_44[1]), .cin(dm_int_st3_44[2]), .s(dm_int_st4_44[4]), .cout(dm_int_st4_45[0]));
-	full_adder FA491(.a(dm_int_st3_44[3]), .b(dm_int_st3_44[4]), .cin(dm_int_st3_44[5]), .s(dm_int_st4_44[5]), .cout(dm_int_st4_45[1]));
-	full_adder FA492(.a(dm_int_st3_44[6]), .b(dm_int_st3_44[7]), .cin(dm_int_st3_44[8]), .s(dm_int_st4_44[6]), .cout(dm_int_st4_45[2]));
-	full_adder FA493(.a(dm_int_st3_44[9]), .b(dm_int_st3_44[10]), .cin(dm_int_st3_44[11]), .s(dm_int_st4_44[7]), .cout(dm_int_st4_45[3]));
-	assign dm_int_st4_44[8] = dm_int_st3_44[12];
+	full_adder FA490(.a(dm_int_st3_44[0]), .b(dm_int_st3_44[1]), .cin(dm_int_st3_44[2]), .s(dm_int_st4_44_tmp[4]), .cout(dm_int_st4_45_tmp[0]));
+	full_adder FA491(.a(dm_int_st3_44[3]), .b(dm_int_st3_44[4]), .cin(dm_int_st3_44[5]), .s(dm_int_st4_44_tmp[5]), .cout(dm_int_st4_45_tmp[1]));
+	full_adder FA492(.a(dm_int_st3_44[6]), .b(dm_int_st3_44[7]), .cin(dm_int_st3_44[8]), .s(dm_int_st4_44_tmp[6]), .cout(dm_int_st4_45_tmp[2]));
+	full_adder FA493(.a(dm_int_st3_44[9]), .b(dm_int_st3_44[10]), .cin(dm_int_st3_44[11]), .s(dm_int_st4_44_tmp[7]), .cout(dm_int_st4_45_tmp[3]));
+	assign dm_int_st4_44_tmp[8] = dm_int_st3_44[12];
 	// Bit 45
-	full_adder FA494(.a(dm_int_st3_45[0]), .b(dm_int_st3_45[1]), .cin(dm_int_st3_45[2]), .s(dm_int_st4_45[4]), .cout(dm_int_st4_46[0]));
-	full_adder FA495(.a(dm_int_st3_45[3]), .b(dm_int_st3_45[4]), .cin(dm_int_st3_45[5]), .s(dm_int_st4_45[5]), .cout(dm_int_st4_46[1]));
-	full_adder FA496(.a(dm_int_st3_45[6]), .b(dm_int_st3_45[7]), .cin(dm_int_st3_45[8]), .s(dm_int_st4_45[6]), .cout(dm_int_st4_46[2]));
-	full_adder FA497(.a(dm_int_st3_45[9]), .b(dm_int_st3_45[10]), .cin(dm_int_st3_45[11]), .s(dm_int_st4_45[7]), .cout(dm_int_st4_46[3]));
-	assign dm_int_st4_45[8] = dm_int_st3_45[12];
+	full_adder FA494(.a(dm_int_st3_45[0]), .b(dm_int_st3_45[1]), .cin(dm_int_st3_45[2]), .s(dm_int_st4_45_tmp[4]), .cout(dm_int_st4_46_tmp[0]));
+	full_adder FA495(.a(dm_int_st3_45[3]), .b(dm_int_st3_45[4]), .cin(dm_int_st3_45[5]), .s(dm_int_st4_45_tmp[5]), .cout(dm_int_st4_46_tmp[1]));
+	full_adder FA496(.a(dm_int_st3_45[6]), .b(dm_int_st3_45[7]), .cin(dm_int_st3_45[8]), .s(dm_int_st4_45_tmp[6]), .cout(dm_int_st4_46_tmp[2]));
+	full_adder FA497(.a(dm_int_st3_45[9]), .b(dm_int_st3_45[10]), .cin(dm_int_st3_45[11]), .s(dm_int_st4_45_tmp[7]), .cout(dm_int_st4_46_tmp[3]));
+	assign dm_int_st4_45_tmp[8] = dm_int_st3_45[12];
 	// Bit 46
-	full_adder FA498(.a(dm_int_st3_46[0]), .b(dm_int_st3_46[1]), .cin(dm_int_st3_46[2]), .s(dm_int_st4_46[4]), .cout(dm_int_st4_47[0]));
-	full_adder FA499(.a(dm_int_st3_46[3]), .b(dm_int_st3_46[4]), .cin(dm_int_st3_46[5]), .s(dm_int_st4_46[5]), .cout(dm_int_st4_47[1]));
-	full_adder FA500(.a(dm_int_st3_46[6]), .b(dm_int_st3_46[7]), .cin(dm_int_st3_46[8]), .s(dm_int_st4_46[6]), .cout(dm_int_st4_47[2]));
-	full_adder FA501(.a(dm_int_st3_46[9]), .b(dm_int_st3_46[10]), .cin(dm_int_st3_46[11]), .s(dm_int_st4_46[7]), .cout(dm_int_st4_47[3]));
-	assign dm_int_st4_46[8] = dm_int_st3_46[12];
+	full_adder FA498(.a(dm_int_st3_46[0]), .b(dm_int_st3_46[1]), .cin(dm_int_st3_46[2]), .s(dm_int_st4_46_tmp[4]), .cout(dm_int_st4_47_tmp[0]));
+	full_adder FA499(.a(dm_int_st3_46[3]), .b(dm_int_st3_46[4]), .cin(dm_int_st3_46[5]), .s(dm_int_st4_46_tmp[5]), .cout(dm_int_st4_47_tmp[1]));
+	full_adder FA500(.a(dm_int_st3_46[6]), .b(dm_int_st3_46[7]), .cin(dm_int_st3_46[8]), .s(dm_int_st4_46_tmp[6]), .cout(dm_int_st4_47_tmp[2]));
+	full_adder FA501(.a(dm_int_st3_46[9]), .b(dm_int_st3_46[10]), .cin(dm_int_st3_46[11]), .s(dm_int_st4_46_tmp[7]), .cout(dm_int_st4_47_tmp[3]));
+	assign dm_int_st4_46_tmp[8] = dm_int_st3_46[12];
 	// Bit 47
-	full_adder FA502(.a(dm_int_st3_47[0]), .b(dm_int_st3_47[1]), .cin(dm_int_st3_47[2]), .s(dm_int_st4_47[4]), .cout(dm_int_st4_48[0]));
-	full_adder FA503(.a(dm_int_st3_47[3]), .b(dm_int_st3_47[4]), .cin(dm_int_st3_47[5]), .s(dm_int_st4_47[5]), .cout(dm_int_st4_48[1]));
-	full_adder FA504(.a(dm_int_st3_47[6]), .b(dm_int_st3_47[7]), .cin(dm_int_st3_47[8]), .s(dm_int_st4_47[6]), .cout(dm_int_st4_48[2]));
-	full_adder FA505(.a(dm_int_st3_47[9]), .b(dm_int_st3_47[10]), .cin(dm_int_st3_47[11]), .s(dm_int_st4_47[7]), .cout(dm_int_st4_48[3]));
-	assign dm_int_st4_47[8] = dm_int_st3_47[12];
+	full_adder FA502(.a(dm_int_st3_47[0]), .b(dm_int_st3_47[1]), .cin(dm_int_st3_47[2]), .s(dm_int_st4_47_tmp[4]), .cout(dm_int_st4_48_tmp[0]));
+	full_adder FA503(.a(dm_int_st3_47[3]), .b(dm_int_st3_47[4]), .cin(dm_int_st3_47[5]), .s(dm_int_st4_47_tmp[5]), .cout(dm_int_st4_48_tmp[1]));
+	full_adder FA504(.a(dm_int_st3_47[6]), .b(dm_int_st3_47[7]), .cin(dm_int_st3_47[8]), .s(dm_int_st4_47_tmp[6]), .cout(dm_int_st4_48_tmp[2]));
+	full_adder FA505(.a(dm_int_st3_47[9]), .b(dm_int_st3_47[10]), .cin(dm_int_st3_47[11]), .s(dm_int_st4_47_tmp[7]), .cout(dm_int_st4_48_tmp[3]));
+	assign dm_int_st4_47_tmp[8] = dm_int_st3_47[12];
 	// Bit 48
-	full_adder FA506(.a(dm_int_st3_48[0]), .b(dm_int_st3_48[1]), .cin(dm_int_st3_48[2]), .s(dm_int_st4_48[4]), .cout(dm_int_st4_49[0]));
-	full_adder FA507(.a(dm_int_st3_48[3]), .b(dm_int_st3_48[4]), .cin(dm_int_st3_48[5]), .s(dm_int_st4_48[5]), .cout(dm_int_st4_49[1]));
-	full_adder FA508(.a(dm_int_st3_48[6]), .b(dm_int_st3_48[7]), .cin(dm_int_st3_48[8]), .s(dm_int_st4_48[6]), .cout(dm_int_st4_49[2]));
-	full_adder FA509(.a(dm_int_st3_48[9]), .b(dm_int_st3_48[10]), .cin(dm_int_st3_48[11]), .s(dm_int_st4_48[7]), .cout(dm_int_st4_49[3]));
-	assign dm_int_st4_48[8] = dm_int_st3_48[12];
+	full_adder FA506(.a(dm_int_st3_48[0]), .b(dm_int_st3_48[1]), .cin(dm_int_st3_48[2]), .s(dm_int_st4_48_tmp[4]), .cout(dm_int_st4_49_tmp[0]));
+	full_adder FA507(.a(dm_int_st3_48[3]), .b(dm_int_st3_48[4]), .cin(dm_int_st3_48[5]), .s(dm_int_st4_48_tmp[5]), .cout(dm_int_st4_49_tmp[1]));
+	full_adder FA508(.a(dm_int_st3_48[6]), .b(dm_int_st3_48[7]), .cin(dm_int_st3_48[8]), .s(dm_int_st4_48_tmp[6]), .cout(dm_int_st4_49_tmp[2]));
+	full_adder FA509(.a(dm_int_st3_48[9]), .b(dm_int_st3_48[10]), .cin(dm_int_st3_48[11]), .s(dm_int_st4_48_tmp[7]), .cout(dm_int_st4_49_tmp[3]));
+	assign dm_int_st4_48_tmp[8] = dm_int_st3_48[12];
 	// Bit 49
-	full_adder FA510(.a(dm_int_st3_49[0]), .b(dm_int_st3_49[1]), .cin(dm_int_st3_49[2]), .s(dm_int_st4_49[4]), .cout(dm_int_st4_50[0]));
-	full_adder FA511(.a(dm_int_st3_49[3]), .b(dm_int_st3_49[4]), .cin(dm_int_st3_49[5]), .s(dm_int_st4_49[5]), .cout(dm_int_st4_50[1]));
-	full_adder FA512(.a(dm_int_st3_49[6]), .b(dm_int_st3_49[7]), .cin(dm_int_st3_49[8]), .s(dm_int_st4_49[6]), .cout(dm_int_st4_50[2]));
-	full_adder FA513(.a(dm_int_st3_49[9]), .b(dm_int_st3_49[10]), .cin(dm_int_st3_49[11]), .s(dm_int_st4_49[7]), .cout(dm_int_st4_50[3]));
-	assign dm_int_st4_49[8] = dm_int_st3_49[12];
+	full_adder FA510(.a(dm_int_st3_49[0]), .b(dm_int_st3_49[1]), .cin(dm_int_st3_49[2]), .s(dm_int_st4_49_tmp[4]), .cout(dm_int_st4_50_tmp[0]));
+	full_adder FA511(.a(dm_int_st3_49[3]), .b(dm_int_st3_49[4]), .cin(dm_int_st3_49[5]), .s(dm_int_st4_49_tmp[5]), .cout(dm_int_st4_50_tmp[1]));
+	full_adder FA512(.a(dm_int_st3_49[6]), .b(dm_int_st3_49[7]), .cin(dm_int_st3_49[8]), .s(dm_int_st4_49_tmp[6]), .cout(dm_int_st4_50_tmp[2]));
+	full_adder FA513(.a(dm_int_st3_49[9]), .b(dm_int_st3_49[10]), .cin(dm_int_st3_49[11]), .s(dm_int_st4_49_tmp[7]), .cout(dm_int_st4_50_tmp[3]));
+	assign dm_int_st4_49_tmp[8] = dm_int_st3_49[12];
 	// Bit 50
-	full_adder FA514(.a(dm_int_st3_50[0]), .b(dm_int_st3_50[1]), .cin(dm_int_st3_50[2]), .s(dm_int_st4_50[4]), .cout(dm_int_st4_51[0]));
-	full_adder FA515(.a(dm_int_st3_50[3]), .b(dm_int_st3_50[4]), .cin(dm_int_st3_50[5]), .s(dm_int_st4_50[5]), .cout(dm_int_st4_51[1]));
-	full_adder FA516(.a(dm_int_st3_50[6]), .b(dm_int_st3_50[7]), .cin(dm_int_st3_50[8]), .s(dm_int_st4_50[6]), .cout(dm_int_st4_51[2]));
-	full_adder FA517(.a(dm_int_st3_50[9]), .b(dm_int_st3_50[10]), .cin(dm_int_st3_50[11]), .s(dm_int_st4_50[7]), .cout(dm_int_st4_51[3]));
-	assign dm_int_st4_50[8] = dm_int_st3_50[12];
+	full_adder FA514(.a(dm_int_st3_50[0]), .b(dm_int_st3_50[1]), .cin(dm_int_st3_50[2]), .s(dm_int_st4_50_tmp[4]), .cout(dm_int_st4_51_tmp[0]));
+	full_adder FA515(.a(dm_int_st3_50[3]), .b(dm_int_st3_50[4]), .cin(dm_int_st3_50[5]), .s(dm_int_st4_50_tmp[5]), .cout(dm_int_st4_51_tmp[1]));
+	full_adder FA516(.a(dm_int_st3_50[6]), .b(dm_int_st3_50[7]), .cin(dm_int_st3_50[8]), .s(dm_int_st4_50_tmp[6]), .cout(dm_int_st4_51_tmp[2]));
+	full_adder FA517(.a(dm_int_st3_50[9]), .b(dm_int_st3_50[10]), .cin(dm_int_st3_50[11]), .s(dm_int_st4_50_tmp[7]), .cout(dm_int_st4_51_tmp[3]));
+	assign dm_int_st4_50_tmp[8] = dm_int_st3_50[12];
 	// Bit 51
-	full_adder FA518(.a(dm_int_st3_51[0]), .b(dm_int_st3_51[1]), .cin(dm_int_st3_51[2]), .s(dm_int_st4_51[4]), .cout(dm_int_st4_52[0]));
-	full_adder FA519(.a(dm_int_st3_51[3]), .b(dm_int_st3_51[4]), .cin(dm_int_st3_51[5]), .s(dm_int_st4_51[5]), .cout(dm_int_st4_52[1]));
-	full_adder FA520(.a(dm_int_st3_51[6]), .b(dm_int_st3_51[7]), .cin(dm_int_st3_51[8]), .s(dm_int_st4_51[6]), .cout(dm_int_st4_52[2]));
-	full_adder FA521(.a(dm_int_st3_51[9]), .b(dm_int_st3_51[10]), .cin(dm_int_st3_51[11]), .s(dm_int_st4_51[7]), .cout(dm_int_st4_52[3]));
-	assign dm_int_st4_51[8] = dm_int_st3_51[12];
+	full_adder FA518(.a(dm_int_st3_51[0]), .b(dm_int_st3_51[1]), .cin(dm_int_st3_51[2]), .s(dm_int_st4_51_tmp[4]), .cout(dm_int_st4_52_tmp[0]));
+	full_adder FA519(.a(dm_int_st3_51[3]), .b(dm_int_st3_51[4]), .cin(dm_int_st3_51[5]), .s(dm_int_st4_51_tmp[5]), .cout(dm_int_st4_52_tmp[1]));
+	full_adder FA520(.a(dm_int_st3_51[6]), .b(dm_int_st3_51[7]), .cin(dm_int_st3_51[8]), .s(dm_int_st4_51_tmp[6]), .cout(dm_int_st4_52_tmp[2]));
+	full_adder FA521(.a(dm_int_st3_51[9]), .b(dm_int_st3_51[10]), .cin(dm_int_st3_51[11]), .s(dm_int_st4_51_tmp[7]), .cout(dm_int_st4_52_tmp[3]));
+	assign dm_int_st4_51_tmp[8] = dm_int_st3_51[12];
 	// Bit 52
-	full_adder FA522(.a(dm_int_st3_52[0]), .b(dm_int_st3_52[1]), .cin(dm_int_st3_52[2]), .s(dm_int_st4_52[4]), .cout(dm_int_st4_53[0]));
-	full_adder FA523(.a(dm_int_st3_52[3]), .b(dm_int_st3_52[4]), .cin(dm_int_st3_52[5]), .s(dm_int_st4_52[5]), .cout(dm_int_st4_53[1]));
-	full_adder FA524(.a(dm_int_st3_52[6]), .b(dm_int_st3_52[7]), .cin(dm_int_st3_52[8]), .s(dm_int_st4_52[6]), .cout(dm_int_st4_53[2]));
-	assign dm_int_st4_52[7] = dm_int_st3_52[9];
-	assign dm_int_st4_52[8] = dm_int_st3_52[10];
+	full_adder FA522(.a(dm_int_st3_52[0]), .b(dm_int_st3_52[1]), .cin(dm_int_st3_52[2]), .s(dm_int_st4_52_tmp[4]), .cout(dm_int_st4_53_tmp[0]));
+	full_adder FA523(.a(dm_int_st3_52[3]), .b(dm_int_st3_52[4]), .cin(dm_int_st3_52[5]), .s(dm_int_st4_52_tmp[5]), .cout(dm_int_st4_53_tmp[1]));
+	full_adder FA524(.a(dm_int_st3_52[6]), .b(dm_int_st3_52[7]), .cin(dm_int_st3_52[8]), .s(dm_int_st4_52_tmp[6]), .cout(dm_int_st4_53_tmp[2]));
+	assign dm_int_st4_52_tmp[7] = dm_int_st3_52[9];
+	assign dm_int_st4_52_tmp[8] = dm_int_st3_52[10];
 	// Bit 53
-	full_adder FA525(.a(dm_int_st3_53[0]), .b(dm_int_st3_53[1]), .cin(dm_int_st3_53[2]), .s(dm_int_st4_53[3]), .cout(dm_int_st4_54[0]));
-	full_adder FA526(.a(dm_int_st3_53[3]), .b(dm_int_st3_53[4]), .cin(dm_int_st3_53[5]), .s(dm_int_st4_53[4]), .cout(dm_int_st4_54[1]));
-	assign dm_int_st4_53[5] = dm_int_st3_53[6];
-	assign dm_int_st4_53[6] = dm_int_st3_53[7];
-	assign dm_int_st4_53[7] = dm_int_st3_53[8];
-	assign dm_int_st4_53[8] = dm_int_st3_53[9];
+	full_adder FA525(.a(dm_int_st3_53[0]), .b(dm_int_st3_53[1]), .cin(dm_int_st3_53[2]), .s(dm_int_st4_53_tmp[3]), .cout(dm_int_st4_54_tmp[0]));
+	full_adder FA526(.a(dm_int_st3_53[3]), .b(dm_int_st3_53[4]), .cin(dm_int_st3_53[5]), .s(dm_int_st4_53_tmp[4]), .cout(dm_int_st4_54_tmp[1]));
+	assign dm_int_st4_53_tmp[5] = dm_int_st3_53[6];
+	assign dm_int_st4_53_tmp[6] = dm_int_st3_53[7];
+	assign dm_int_st4_53_tmp[7] = dm_int_st3_53[8];
+	assign dm_int_st4_53_tmp[8] = dm_int_st3_53[9];
 	// Bit 54
-	full_adder FA527(.a(dm_int_st3_54[0]), .b(dm_int_st3_54[1]), .cin(dm_int_st3_54[2]), .s(dm_int_st4_54[2]), .cout(dm_int_st4_55[0]));
-	assign dm_int_st4_54[3] = dm_int_st3_54[3];
-	assign dm_int_st4_54[4] = dm_int_st3_54[4];
-	assign dm_int_st4_54[5] = dm_int_st3_54[5];
-	assign dm_int_st4_54[6] = dm_int_st3_54[6];
-	assign dm_int_st4_54[7] = dm_int_st3_54[7];
-	assign dm_int_st4_54[8] = dm_int_st3_54[8];
+	full_adder FA527(.a(dm_int_st3_54[0]), .b(dm_int_st3_54[1]), .cin(dm_int_st3_54[2]), .s(dm_int_st4_54_tmp[2]), .cout(dm_int_st4_55_tmp[0]));
+	assign dm_int_st4_54_tmp[3] = dm_int_st3_54[3];
+	assign dm_int_st4_54_tmp[4] = dm_int_st3_54[4];
+	assign dm_int_st4_54_tmp[5] = dm_int_st3_54[5];
+	assign dm_int_st4_54_tmp[6] = dm_int_st3_54[6];
+	assign dm_int_st4_54_tmp[7] = dm_int_st3_54[7];
+	assign dm_int_st4_54_tmp[8] = dm_int_st3_54[8];
 	// Bit 55
-	assign dm_int_st4_55[1] = dm_int_st3_55[0];
-	assign dm_int_st4_55[2] = dm_int_st3_55[1];
-	assign dm_int_st4_55[3] = dm_int_st3_55[2];
-	assign dm_int_st4_55[4] = dm_int_st3_55[3];
-	assign dm_int_st4_55[5] = dm_int_st3_55[4];
-	assign dm_int_st4_55[6] = dm_int_st3_55[5];
-	assign dm_int_st4_55[7] = dm_int_st3_55[6];
-	assign dm_int_st4_55[8] = dm_int_st3_55[7];
+	assign dm_int_st4_55_tmp[1] = dm_int_st3_55[0];
+	assign dm_int_st4_55_tmp[2] = dm_int_st3_55[1];
+	assign dm_int_st4_55_tmp[3] = dm_int_st3_55[2];
+	assign dm_int_st4_55_tmp[4] = dm_int_st3_55[3];
+	assign dm_int_st4_55_tmp[5] = dm_int_st3_55[4];
+	assign dm_int_st4_55_tmp[6] = dm_int_st3_55[5];
+	assign dm_int_st4_55_tmp[7] = dm_int_st3_55[6];
+	assign dm_int_st4_55_tmp[8] = dm_int_st3_55[7];
 	// Bit 56
-	assign dm_int_st4_56[0] = dm_int_st3_56[0];
-	assign dm_int_st4_56[1] = dm_int_st3_56[1];
-	assign dm_int_st4_56[2] = dm_int_st3_56[2];
-	assign dm_int_st4_56[3] = dm_int_st3_56[3];
-	assign dm_int_st4_56[4] = dm_int_st3_56[4];
-	assign dm_int_st4_56[5] = dm_int_st3_56[5];
-	assign dm_int_st4_56[6] = dm_int_st3_56[6];
+	assign dm_int_st4_56_tmp[0] = dm_int_st3_56[0];
+	assign dm_int_st4_56_tmp[1] = dm_int_st3_56[1];
+	assign dm_int_st4_56_tmp[2] = dm_int_st3_56[2];
+	assign dm_int_st4_56_tmp[3] = dm_int_st3_56[3];
+	assign dm_int_st4_56_tmp[4] = dm_int_st3_56[4];
+	assign dm_int_st4_56_tmp[5] = dm_int_st3_56[5];
+	assign dm_int_st4_56_tmp[6] = dm_int_st3_56[6];
 	// Bit 57
-	assign dm_int_st4_57[0] = dm_int_st3_57[0];
-	assign dm_int_st4_57[1] = dm_int_st3_57[1];
-	assign dm_int_st4_57[2] = dm_int_st3_57[2];
-	assign dm_int_st4_57[3] = dm_int_st3_57[3];
-	assign dm_int_st4_57[4] = dm_int_st3_57[4];
-	assign dm_int_st4_57[5] = dm_int_st3_57[5];
+	assign dm_int_st4_57_tmp[0] = dm_int_st3_57[0];
+	assign dm_int_st4_57_tmp[1] = dm_int_st3_57[1];
+	assign dm_int_st4_57_tmp[2] = dm_int_st3_57[2];
+	assign dm_int_st4_57_tmp[3] = dm_int_st3_57[3];
+	assign dm_int_st4_57_tmp[4] = dm_int_st3_57[4];
+	assign dm_int_st4_57_tmp[5] = dm_int_st3_57[5];
 	// Bit 58
-	assign dm_int_st4_58[0] = dm_int_st3_58[0];
-	assign dm_int_st4_58[1] = dm_int_st3_58[1];
-	assign dm_int_st4_58[2] = dm_int_st3_58[2];
-	assign dm_int_st4_58[3] = dm_int_st3_58[3];
-	assign dm_int_st4_58[4] = dm_int_st3_58[4];
+	assign dm_int_st4_58_tmp[0] = dm_int_st3_58[0];
+	assign dm_int_st4_58_tmp[1] = dm_int_st3_58[1];
+	assign dm_int_st4_58_tmp[2] = dm_int_st3_58[2];
+	assign dm_int_st4_58_tmp[3] = dm_int_st3_58[3];
+	assign dm_int_st4_58_tmp[4] = dm_int_st3_58[4];
 	// Bit 59
-	assign dm_int_st4_59[0] = dm_int_st3_59[0];
-	assign dm_int_st4_59[1] = dm_int_st3_59[1];
-	assign dm_int_st4_59[2] = dm_int_st3_59[2];
-	assign dm_int_st4_59[3] = dm_int_st3_59[3];
+	assign dm_int_st4_59_tmp[0] = dm_int_st3_59[0];
+	assign dm_int_st4_59_tmp[1] = dm_int_st3_59[1];
+	assign dm_int_st4_59_tmp[2] = dm_int_st3_59[2];
+	assign dm_int_st4_59_tmp[3] = dm_int_st3_59[3];
 	// Bit 60
-	assign dm_int_st4_60[0] = dm_int_st3_60[0];
-	assign dm_int_st4_60[1] = dm_int_st3_60[1];
-	assign dm_int_st4_60[2] = dm_int_st3_60[2];
+	assign dm_int_st4_60_tmp[0] = dm_int_st3_60[0];
+	assign dm_int_st4_60_tmp[1] = dm_int_st3_60[1];
+	assign dm_int_st4_60_tmp[2] = dm_int_st3_60[2];
 	// Bit 61
-	assign dm_int_st4_61[0] = dm_int_st3_61[0];
-	assign dm_int_st4_61[1] = dm_int_st3_61[1];
+	assign dm_int_st4_61_tmp[0] = dm_int_st3_61[0];
+	assign dm_int_st4_61_tmp[1] = dm_int_st3_61[1];
 	// Bit 62
-	assign dm_int_st4_62[0] = dm_int_st3_62[0];
+	assign dm_int_st4_62_tmp[0] = dm_int_st3_62[0];
 
 	//// Stage 5 ////
 	wire [0:0] dm_int_st5_0;
@@ -4946,201 +5069,331 @@ module fxp32s_dadda_full(
 	assign dm_int_st7_62[0] = dm_int_st6_62[0];
 
 	//// Stage 8 ////
-	wire [0:0] dm_int_st8_0;
-	wire [1:0] dm_int_st8_1;
-	wire [1:0] dm_int_st8_2;
-	wire [1:0] dm_int_st8_3;
-	wire [1:0] dm_int_st8_4;
-	wire [1:0] dm_int_st8_5;
-	wire [1:0] dm_int_st8_6;
-	wire [1:0] dm_int_st8_7;
-	wire [1:0] dm_int_st8_8;
-	wire [1:0] dm_int_st8_9;
-	wire [1:0] dm_int_st8_10;
-	wire [1:0] dm_int_st8_11;
-	wire [1:0] dm_int_st8_12;
-	wire [1:0] dm_int_st8_13;
-	wire [1:0] dm_int_st8_14;
-	wire [1:0] dm_int_st8_15;
-	wire [1:0] dm_int_st8_16;
-	wire [1:0] dm_int_st8_17;
-	wire [1:0] dm_int_st8_18;
-	wire [1:0] dm_int_st8_19;
-	wire [1:0] dm_int_st8_20;
-	wire [1:0] dm_int_st8_21;
-	wire [1:0] dm_int_st8_22;
-	wire [1:0] dm_int_st8_23;
-	wire [1:0] dm_int_st8_24;
-	wire [1:0] dm_int_st8_25;
-	wire [1:0] dm_int_st8_26;
-	wire [1:0] dm_int_st8_27;
-	wire [1:0] dm_int_st8_28;
-	wire [1:0] dm_int_st8_29;
-	wire [1:0] dm_int_st8_30;
-	wire [1:0] dm_int_st8_31;
-	wire [1:0] dm_int_st8_32;
-	wire [1:0] dm_int_st8_33;
-	wire [1:0] dm_int_st8_34;
-	wire [1:0] dm_int_st8_35;
-	wire [1:0] dm_int_st8_36;
-	wire [1:0] dm_int_st8_37;
-	wire [1:0] dm_int_st8_38;
-	wire [1:0] dm_int_st8_39;
-	wire [1:0] dm_int_st8_40;
-	wire [1:0] dm_int_st8_41;
-	wire [1:0] dm_int_st8_42;
-	wire [1:0] dm_int_st8_43;
-	wire [1:0] dm_int_st8_44;
-	wire [1:0] dm_int_st8_45;
-	wire [1:0] dm_int_st8_46;
-	wire [1:0] dm_int_st8_47;
-	wire [1:0] dm_int_st8_48;
-	wire [1:0] dm_int_st8_49;
-	wire [1:0] dm_int_st8_50;
-	wire [1:0] dm_int_st8_51;
-	wire [1:0] dm_int_st8_52;
-	wire [1:0] dm_int_st8_53;
-	wire [1:0] dm_int_st8_54;
-	wire [1:0] dm_int_st8_55;
-	wire [1:0] dm_int_st8_56;
-	wire [1:0] dm_int_st8_57;
-	wire [1:0] dm_int_st8_58;
-	wire [1:0] dm_int_st8_59;
-	wire [1:0] dm_int_st8_60;
-	wire [1:0] dm_int_st8_61;
-	wire [1:0] dm_int_st8_62;
+	wire [0:0] dm_int_st8_0_tmp;
+	reg [0:0] dm_int_st8_0;
+	wire [1:0] dm_int_st8_1_tmp;
+	reg [1:0] dm_int_st8_1;
+	wire [1:0] dm_int_st8_2_tmp;
+	reg [1:0] dm_int_st8_2;
+	wire [1:0] dm_int_st8_3_tmp;
+	reg [1:0] dm_int_st8_3;
+	wire [1:0] dm_int_st8_4_tmp;
+	reg [1:0] dm_int_st8_4;
+	wire [1:0] dm_int_st8_5_tmp;
+	reg [1:0] dm_int_st8_5;
+	wire [1:0] dm_int_st8_6_tmp;
+	reg [1:0] dm_int_st8_6;
+	wire [1:0] dm_int_st8_7_tmp;
+	reg [1:0] dm_int_st8_7;
+	wire [1:0] dm_int_st8_8_tmp;
+	reg [1:0] dm_int_st8_8;
+	wire [1:0] dm_int_st8_9_tmp;
+	reg [1:0] dm_int_st8_9;
+	wire [1:0] dm_int_st8_10_tmp;
+	reg [1:0] dm_int_st8_10;
+	wire [1:0] dm_int_st8_11_tmp;
+	reg [1:0] dm_int_st8_11;
+	wire [1:0] dm_int_st8_12_tmp;
+	reg [1:0] dm_int_st8_12;
+	wire [1:0] dm_int_st8_13_tmp;
+	reg [1:0] dm_int_st8_13;
+	wire [1:0] dm_int_st8_14_tmp;
+	reg [1:0] dm_int_st8_14;
+	wire [1:0] dm_int_st8_15_tmp;
+	reg [1:0] dm_int_st8_15;
+	wire [1:0] dm_int_st8_16_tmp;
+	reg [1:0] dm_int_st8_16;
+	wire [1:0] dm_int_st8_17_tmp;
+	reg [1:0] dm_int_st8_17;
+	wire [1:0] dm_int_st8_18_tmp;
+	reg [1:0] dm_int_st8_18;
+	wire [1:0] dm_int_st8_19_tmp;
+	reg [1:0] dm_int_st8_19;
+	wire [1:0] dm_int_st8_20_tmp;
+	reg [1:0] dm_int_st8_20;
+	wire [1:0] dm_int_st8_21_tmp;
+	reg [1:0] dm_int_st8_21;
+	wire [1:0] dm_int_st8_22_tmp;
+	reg [1:0] dm_int_st8_22;
+	wire [1:0] dm_int_st8_23_tmp;
+	reg [1:0] dm_int_st8_23;
+	wire [1:0] dm_int_st8_24_tmp;
+	reg [1:0] dm_int_st8_24;
+	wire [1:0] dm_int_st8_25_tmp;
+	reg [1:0] dm_int_st8_25;
+	wire [1:0] dm_int_st8_26_tmp;
+	reg [1:0] dm_int_st8_26;
+	wire [1:0] dm_int_st8_27_tmp;
+	reg [1:0] dm_int_st8_27;
+	wire [1:0] dm_int_st8_28_tmp;
+	reg [1:0] dm_int_st8_28;
+	wire [1:0] dm_int_st8_29_tmp;
+	reg [1:0] dm_int_st8_29;
+	wire [1:0] dm_int_st8_30_tmp;
+	reg [1:0] dm_int_st8_30;
+	wire [1:0] dm_int_st8_31_tmp;
+	reg [1:0] dm_int_st8_31;
+	wire [1:0] dm_int_st8_32_tmp;
+	reg [1:0] dm_int_st8_32;
+	wire [1:0] dm_int_st8_33_tmp;
+	reg [1:0] dm_int_st8_33;
+	wire [1:0] dm_int_st8_34_tmp;
+	reg [1:0] dm_int_st8_34;
+	wire [1:0] dm_int_st8_35_tmp;
+	reg [1:0] dm_int_st8_35;
+	wire [1:0] dm_int_st8_36_tmp;
+	reg [1:0] dm_int_st8_36;
+	wire [1:0] dm_int_st8_37_tmp;
+	reg [1:0] dm_int_st8_37;
+	wire [1:0] dm_int_st8_38_tmp;
+	reg [1:0] dm_int_st8_38;
+	wire [1:0] dm_int_st8_39_tmp;
+	reg [1:0] dm_int_st8_39;
+	wire [1:0] dm_int_st8_40_tmp;
+	reg [1:0] dm_int_st8_40;
+	wire [1:0] dm_int_st8_41_tmp;
+	reg [1:0] dm_int_st8_41;
+	wire [1:0] dm_int_st8_42_tmp;
+	reg [1:0] dm_int_st8_42;
+	wire [1:0] dm_int_st8_43_tmp;
+	reg [1:0] dm_int_st8_43;
+	wire [1:0] dm_int_st8_44_tmp;
+	reg [1:0] dm_int_st8_44;
+	wire [1:0] dm_int_st8_45_tmp;
+	reg [1:0] dm_int_st8_45;
+	wire [1:0] dm_int_st8_46_tmp;
+	reg [1:0] dm_int_st8_46;
+	wire [1:0] dm_int_st8_47_tmp;
+	reg [1:0] dm_int_st8_47;
+	wire [1:0] dm_int_st8_48_tmp;
+	reg [1:0] dm_int_st8_48;
+	wire [1:0] dm_int_st8_49_tmp;
+	reg [1:0] dm_int_st8_49;
+	wire [1:0] dm_int_st8_50_tmp;
+	reg [1:0] dm_int_st8_50;
+	wire [1:0] dm_int_st8_51_tmp;
+	reg [1:0] dm_int_st8_51;
+	wire [1:0] dm_int_st8_52_tmp;
+	reg [1:0] dm_int_st8_52;
+	wire [1:0] dm_int_st8_53_tmp;
+	reg [1:0] dm_int_st8_53;
+	wire [1:0] dm_int_st8_54_tmp;
+	reg [1:0] dm_int_st8_54;
+	wire [1:0] dm_int_st8_55_tmp;
+	reg [1:0] dm_int_st8_55;
+	wire [1:0] dm_int_st8_56_tmp;
+	reg [1:0] dm_int_st8_56;
+	wire [1:0] dm_int_st8_57_tmp;
+	reg [1:0] dm_int_st8_57;
+	wire [1:0] dm_int_st8_58_tmp;
+	reg [1:0] dm_int_st8_58;
+	wire [1:0] dm_int_st8_59_tmp;
+	reg [1:0] dm_int_st8_59;
+	wire [1:0] dm_int_st8_60_tmp;
+	reg [1:0] dm_int_st8_60;
+	wire [1:0] dm_int_st8_61_tmp;
+	reg [1:0] dm_int_st8_61;
+	wire [1:0] dm_int_st8_62_tmp;
+	reg [1:0] dm_int_st8_62;
+	reg neg_out_st_8;
 
+	always @(posedge clk) begin
+		neg_out_st_8 <= neg_out_st_4 & rstn;
+		dm_int_st8_0 <= dm_int_st8_0_tmp & {1{rstn}};
+		dm_int_st8_1 <= dm_int_st8_1_tmp & {2{rstn}};
+		dm_int_st8_2 <= dm_int_st8_2_tmp & {2{rstn}};
+		dm_int_st8_3 <= dm_int_st8_3_tmp & {2{rstn}};
+		dm_int_st8_4 <= dm_int_st8_4_tmp & {2{rstn}};
+		dm_int_st8_5 <= dm_int_st8_5_tmp & {2{rstn}};
+		dm_int_st8_6 <= dm_int_st8_6_tmp & {2{rstn}};
+		dm_int_st8_7 <= dm_int_st8_7_tmp & {2{rstn}};
+		dm_int_st8_8 <= dm_int_st8_8_tmp & {2{rstn}};
+		dm_int_st8_9 <= dm_int_st8_9_tmp & {2{rstn}};
+		dm_int_st8_10 <= dm_int_st8_10_tmp & {2{rstn}};
+		dm_int_st8_11 <= dm_int_st8_11_tmp & {2{rstn}};
+		dm_int_st8_12 <= dm_int_st8_12_tmp & {2{rstn}};
+		dm_int_st8_13 <= dm_int_st8_13_tmp & {2{rstn}};
+		dm_int_st8_14 <= dm_int_st8_14_tmp & {2{rstn}};
+		dm_int_st8_15 <= dm_int_st8_15_tmp & {2{rstn}};
+		dm_int_st8_16 <= dm_int_st8_16_tmp & {2{rstn}};
+		dm_int_st8_17 <= dm_int_st8_17_tmp & {2{rstn}};
+		dm_int_st8_18 <= dm_int_st8_18_tmp & {2{rstn}};
+		dm_int_st8_19 <= dm_int_st8_19_tmp & {2{rstn}};
+		dm_int_st8_20 <= dm_int_st8_20_tmp & {2{rstn}};
+		dm_int_st8_21 <= dm_int_st8_21_tmp & {2{rstn}};
+		dm_int_st8_22 <= dm_int_st8_22_tmp & {2{rstn}};
+		dm_int_st8_23 <= dm_int_st8_23_tmp & {2{rstn}};
+		dm_int_st8_24 <= dm_int_st8_24_tmp & {2{rstn}};
+		dm_int_st8_25 <= dm_int_st8_25_tmp & {2{rstn}};
+		dm_int_st8_26 <= dm_int_st8_26_tmp & {2{rstn}};
+		dm_int_st8_27 <= dm_int_st8_27_tmp & {2{rstn}};
+		dm_int_st8_28 <= dm_int_st8_28_tmp & {2{rstn}};
+		dm_int_st8_29 <= dm_int_st8_29_tmp & {2{rstn}};
+		dm_int_st8_30 <= dm_int_st8_30_tmp & {2{rstn}};
+		dm_int_st8_31 <= dm_int_st8_31_tmp & {2{rstn}};
+		dm_int_st8_32 <= dm_int_st8_32_tmp & {2{rstn}};
+		dm_int_st8_33 <= dm_int_st8_33_tmp & {2{rstn}};
+		dm_int_st8_34 <= dm_int_st8_34_tmp & {2{rstn}};
+		dm_int_st8_35 <= dm_int_st8_35_tmp & {2{rstn}};
+		dm_int_st8_36 <= dm_int_st8_36_tmp & {2{rstn}};
+		dm_int_st8_37 <= dm_int_st8_37_tmp & {2{rstn}};
+		dm_int_st8_38 <= dm_int_st8_38_tmp & {2{rstn}};
+		dm_int_st8_39 <= dm_int_st8_39_tmp & {2{rstn}};
+		dm_int_st8_40 <= dm_int_st8_40_tmp & {2{rstn}};
+		dm_int_st8_41 <= dm_int_st8_41_tmp & {2{rstn}};
+		dm_int_st8_42 <= dm_int_st8_42_tmp & {2{rstn}};
+		dm_int_st8_43 <= dm_int_st8_43_tmp & {2{rstn}};
+		dm_int_st8_44 <= dm_int_st8_44_tmp & {2{rstn}};
+		dm_int_st8_45 <= dm_int_st8_45_tmp & {2{rstn}};
+		dm_int_st8_46 <= dm_int_st8_46_tmp & {2{rstn}};
+		dm_int_st8_47 <= dm_int_st8_47_tmp & {2{rstn}};
+		dm_int_st8_48 <= dm_int_st8_48_tmp & {2{rstn}};
+		dm_int_st8_49 <= dm_int_st8_49_tmp & {2{rstn}};
+		dm_int_st8_50 <= dm_int_st8_50_tmp & {2{rstn}};
+		dm_int_st8_51 <= dm_int_st8_51_tmp & {2{rstn}};
+		dm_int_st8_52 <= dm_int_st8_52_tmp & {2{rstn}};
+		dm_int_st8_53 <= dm_int_st8_53_tmp & {2{rstn}};
+		dm_int_st8_54 <= dm_int_st8_54_tmp & {2{rstn}};
+		dm_int_st8_55 <= dm_int_st8_55_tmp & {2{rstn}};
+		dm_int_st8_56 <= dm_int_st8_56_tmp & {2{rstn}};
+		dm_int_st8_57 <= dm_int_st8_57_tmp & {2{rstn}};
+		dm_int_st8_58 <= dm_int_st8_58_tmp & {2{rstn}};
+		dm_int_st8_59 <= dm_int_st8_59_tmp & {2{rstn}};
+		dm_int_st8_60 <= dm_int_st8_60_tmp & {2{rstn}};
+		dm_int_st8_61 <= dm_int_st8_61_tmp & {2{rstn}};
+		dm_int_st8_62 <= dm_int_st8_62_tmp & {2{rstn}};
+	end
 	// Bit 0
-	assign dm_int_st8_0[0] = dm_int_st7_0[0];
+	assign dm_int_st8_0_tmp[0] = dm_int_st7_0[0];
 	// Bit 1
-	assign dm_int_st8_1[0] = dm_int_st7_1[0];
-	assign dm_int_st8_1[1] = dm_int_st7_1[1];
+	assign dm_int_st8_1_tmp[0] = dm_int_st7_1[0];
+	assign dm_int_st8_1_tmp[1] = dm_int_st7_1[1];
 	// Bit 2
-	half_adder HA30(.a(dm_int_st7_2[0]), .b(dm_int_st7_2[1]), .s(dm_int_st8_2[0]), .cout(dm_int_st8_3[0]));
-	assign dm_int_st8_2[1] = dm_int_st7_2[2];
+	half_adder HA30(.a(dm_int_st7_2[0]), .b(dm_int_st7_2[1]), .s(dm_int_st8_2_tmp[0]), .cout(dm_int_st8_3_tmp[0]));
+	assign dm_int_st8_2_tmp[1] = dm_int_st7_2[2];
 	// Bit 3
-	full_adder FA840(.a(dm_int_st7_3[0]), .b(dm_int_st7_3[1]), .cin(dm_int_st7_3[2]), .s(dm_int_st8_3[1]), .cout(dm_int_st8_4[0]));
+	full_adder FA840(.a(dm_int_st7_3[0]), .b(dm_int_st7_3[1]), .cin(dm_int_st7_3[2]), .s(dm_int_st8_3_tmp[1]), .cout(dm_int_st8_4_tmp[0]));
 	// Bit 4
-	full_adder FA841(.a(dm_int_st7_4[0]), .b(dm_int_st7_4[1]), .cin(dm_int_st7_4[2]), .s(dm_int_st8_4[1]), .cout(dm_int_st8_5[0]));
+	full_adder FA841(.a(dm_int_st7_4[0]), .b(dm_int_st7_4[1]), .cin(dm_int_st7_4[2]), .s(dm_int_st8_4_tmp[1]), .cout(dm_int_st8_5_tmp[0]));
 	// Bit 5
-	full_adder FA842(.a(dm_int_st7_5[0]), .b(dm_int_st7_5[1]), .cin(dm_int_st7_5[2]), .s(dm_int_st8_5[1]), .cout(dm_int_st8_6[0]));
+	full_adder FA842(.a(dm_int_st7_5[0]), .b(dm_int_st7_5[1]), .cin(dm_int_st7_5[2]), .s(dm_int_st8_5_tmp[1]), .cout(dm_int_st8_6_tmp[0]));
 	// Bit 6
-	full_adder FA843(.a(dm_int_st7_6[0]), .b(dm_int_st7_6[1]), .cin(dm_int_st7_6[2]), .s(dm_int_st8_6[1]), .cout(dm_int_st8_7[0]));
+	full_adder FA843(.a(dm_int_st7_6[0]), .b(dm_int_st7_6[1]), .cin(dm_int_st7_6[2]), .s(dm_int_st8_6_tmp[1]), .cout(dm_int_st8_7_tmp[0]));
 	// Bit 7
-	full_adder FA844(.a(dm_int_st7_7[0]), .b(dm_int_st7_7[1]), .cin(dm_int_st7_7[2]), .s(dm_int_st8_7[1]), .cout(dm_int_st8_8[0]));
+	full_adder FA844(.a(dm_int_st7_7[0]), .b(dm_int_st7_7[1]), .cin(dm_int_st7_7[2]), .s(dm_int_st8_7_tmp[1]), .cout(dm_int_st8_8_tmp[0]));
 	// Bit 8
-	full_adder FA845(.a(dm_int_st7_8[0]), .b(dm_int_st7_8[1]), .cin(dm_int_st7_8[2]), .s(dm_int_st8_8[1]), .cout(dm_int_st8_9[0]));
+	full_adder FA845(.a(dm_int_st7_8[0]), .b(dm_int_st7_8[1]), .cin(dm_int_st7_8[2]), .s(dm_int_st8_8_tmp[1]), .cout(dm_int_st8_9_tmp[0]));
 	// Bit 9
-	full_adder FA846(.a(dm_int_st7_9[0]), .b(dm_int_st7_9[1]), .cin(dm_int_st7_9[2]), .s(dm_int_st8_9[1]), .cout(dm_int_st8_10[0]));
+	full_adder FA846(.a(dm_int_st7_9[0]), .b(dm_int_st7_9[1]), .cin(dm_int_st7_9[2]), .s(dm_int_st8_9_tmp[1]), .cout(dm_int_st8_10_tmp[0]));
 	// Bit 10
-	full_adder FA847(.a(dm_int_st7_10[0]), .b(dm_int_st7_10[1]), .cin(dm_int_st7_10[2]), .s(dm_int_st8_10[1]), .cout(dm_int_st8_11[0]));
+	full_adder FA847(.a(dm_int_st7_10[0]), .b(dm_int_st7_10[1]), .cin(dm_int_st7_10[2]), .s(dm_int_st8_10_tmp[1]), .cout(dm_int_st8_11_tmp[0]));
 	// Bit 11
-	full_adder FA848(.a(dm_int_st7_11[0]), .b(dm_int_st7_11[1]), .cin(dm_int_st7_11[2]), .s(dm_int_st8_11[1]), .cout(dm_int_st8_12[0]));
+	full_adder FA848(.a(dm_int_st7_11[0]), .b(dm_int_st7_11[1]), .cin(dm_int_st7_11[2]), .s(dm_int_st8_11_tmp[1]), .cout(dm_int_st8_12_tmp[0]));
 	// Bit 12
-	full_adder FA849(.a(dm_int_st7_12[0]), .b(dm_int_st7_12[1]), .cin(dm_int_st7_12[2]), .s(dm_int_st8_12[1]), .cout(dm_int_st8_13[0]));
+	full_adder FA849(.a(dm_int_st7_12[0]), .b(dm_int_st7_12[1]), .cin(dm_int_st7_12[2]), .s(dm_int_st8_12_tmp[1]), .cout(dm_int_st8_13_tmp[0]));
 	// Bit 13
-	full_adder FA850(.a(dm_int_st7_13[0]), .b(dm_int_st7_13[1]), .cin(dm_int_st7_13[2]), .s(dm_int_st8_13[1]), .cout(dm_int_st8_14[0]));
+	full_adder FA850(.a(dm_int_st7_13[0]), .b(dm_int_st7_13[1]), .cin(dm_int_st7_13[2]), .s(dm_int_st8_13_tmp[1]), .cout(dm_int_st8_14_tmp[0]));
 	// Bit 14
-	full_adder FA851(.a(dm_int_st7_14[0]), .b(dm_int_st7_14[1]), .cin(dm_int_st7_14[2]), .s(dm_int_st8_14[1]), .cout(dm_int_st8_15[0]));
+	full_adder FA851(.a(dm_int_st7_14[0]), .b(dm_int_st7_14[1]), .cin(dm_int_st7_14[2]), .s(dm_int_st8_14_tmp[1]), .cout(dm_int_st8_15_tmp[0]));
 	// Bit 15
-	full_adder FA852(.a(dm_int_st7_15[0]), .b(dm_int_st7_15[1]), .cin(dm_int_st7_15[2]), .s(dm_int_st8_15[1]), .cout(dm_int_st8_16[0]));
+	full_adder FA852(.a(dm_int_st7_15[0]), .b(dm_int_st7_15[1]), .cin(dm_int_st7_15[2]), .s(dm_int_st8_15_tmp[1]), .cout(dm_int_st8_16_tmp[0]));
 	// Bit 16
-	full_adder FA853(.a(dm_int_st7_16[0]), .b(dm_int_st7_16[1]), .cin(dm_int_st7_16[2]), .s(dm_int_st8_16[1]), .cout(dm_int_st8_17[0]));
+	full_adder FA853(.a(dm_int_st7_16[0]), .b(dm_int_st7_16[1]), .cin(dm_int_st7_16[2]), .s(dm_int_st8_16_tmp[1]), .cout(dm_int_st8_17_tmp[0]));
 	// Bit 17
-	full_adder FA854(.a(dm_int_st7_17[0]), .b(dm_int_st7_17[1]), .cin(dm_int_st7_17[2]), .s(dm_int_st8_17[1]), .cout(dm_int_st8_18[0]));
+	full_adder FA854(.a(dm_int_st7_17[0]), .b(dm_int_st7_17[1]), .cin(dm_int_st7_17[2]), .s(dm_int_st8_17_tmp[1]), .cout(dm_int_st8_18_tmp[0]));
 	// Bit 18
-	full_adder FA855(.a(dm_int_st7_18[0]), .b(dm_int_st7_18[1]), .cin(dm_int_st7_18[2]), .s(dm_int_st8_18[1]), .cout(dm_int_st8_19[0]));
+	full_adder FA855(.a(dm_int_st7_18[0]), .b(dm_int_st7_18[1]), .cin(dm_int_st7_18[2]), .s(dm_int_st8_18_tmp[1]), .cout(dm_int_st8_19_tmp[0]));
 	// Bit 19
-	full_adder FA856(.a(dm_int_st7_19[0]), .b(dm_int_st7_19[1]), .cin(dm_int_st7_19[2]), .s(dm_int_st8_19[1]), .cout(dm_int_st8_20[0]));
+	full_adder FA856(.a(dm_int_st7_19[0]), .b(dm_int_st7_19[1]), .cin(dm_int_st7_19[2]), .s(dm_int_st8_19_tmp[1]), .cout(dm_int_st8_20_tmp[0]));
 	// Bit 20
-	full_adder FA857(.a(dm_int_st7_20[0]), .b(dm_int_st7_20[1]), .cin(dm_int_st7_20[2]), .s(dm_int_st8_20[1]), .cout(dm_int_st8_21[0]));
+	full_adder FA857(.a(dm_int_st7_20[0]), .b(dm_int_st7_20[1]), .cin(dm_int_st7_20[2]), .s(dm_int_st8_20_tmp[1]), .cout(dm_int_st8_21_tmp[0]));
 	// Bit 21
-	full_adder FA858(.a(dm_int_st7_21[0]), .b(dm_int_st7_21[1]), .cin(dm_int_st7_21[2]), .s(dm_int_st8_21[1]), .cout(dm_int_st8_22[0]));
+	full_adder FA858(.a(dm_int_st7_21[0]), .b(dm_int_st7_21[1]), .cin(dm_int_st7_21[2]), .s(dm_int_st8_21_tmp[1]), .cout(dm_int_st8_22_tmp[0]));
 	// Bit 22
-	full_adder FA859(.a(dm_int_st7_22[0]), .b(dm_int_st7_22[1]), .cin(dm_int_st7_22[2]), .s(dm_int_st8_22[1]), .cout(dm_int_st8_23[0]));
+	full_adder FA859(.a(dm_int_st7_22[0]), .b(dm_int_st7_22[1]), .cin(dm_int_st7_22[2]), .s(dm_int_st8_22_tmp[1]), .cout(dm_int_st8_23_tmp[0]));
 	// Bit 23
-	full_adder FA860(.a(dm_int_st7_23[0]), .b(dm_int_st7_23[1]), .cin(dm_int_st7_23[2]), .s(dm_int_st8_23[1]), .cout(dm_int_st8_24[0]));
+	full_adder FA860(.a(dm_int_st7_23[0]), .b(dm_int_st7_23[1]), .cin(dm_int_st7_23[2]), .s(dm_int_st8_23_tmp[1]), .cout(dm_int_st8_24_tmp[0]));
 	// Bit 24
-	full_adder FA861(.a(dm_int_st7_24[0]), .b(dm_int_st7_24[1]), .cin(dm_int_st7_24[2]), .s(dm_int_st8_24[1]), .cout(dm_int_st8_25[0]));
+	full_adder FA861(.a(dm_int_st7_24[0]), .b(dm_int_st7_24[1]), .cin(dm_int_st7_24[2]), .s(dm_int_st8_24_tmp[1]), .cout(dm_int_st8_25_tmp[0]));
 	// Bit 25
-	full_adder FA862(.a(dm_int_st7_25[0]), .b(dm_int_st7_25[1]), .cin(dm_int_st7_25[2]), .s(dm_int_st8_25[1]), .cout(dm_int_st8_26[0]));
+	full_adder FA862(.a(dm_int_st7_25[0]), .b(dm_int_st7_25[1]), .cin(dm_int_st7_25[2]), .s(dm_int_st8_25_tmp[1]), .cout(dm_int_st8_26_tmp[0]));
 	// Bit 26
-	full_adder FA863(.a(dm_int_st7_26[0]), .b(dm_int_st7_26[1]), .cin(dm_int_st7_26[2]), .s(dm_int_st8_26[1]), .cout(dm_int_st8_27[0]));
+	full_adder FA863(.a(dm_int_st7_26[0]), .b(dm_int_st7_26[1]), .cin(dm_int_st7_26[2]), .s(dm_int_st8_26_tmp[1]), .cout(dm_int_st8_27_tmp[0]));
 	// Bit 27
-	full_adder FA864(.a(dm_int_st7_27[0]), .b(dm_int_st7_27[1]), .cin(dm_int_st7_27[2]), .s(dm_int_st8_27[1]), .cout(dm_int_st8_28[0]));
+	full_adder FA864(.a(dm_int_st7_27[0]), .b(dm_int_st7_27[1]), .cin(dm_int_st7_27[2]), .s(dm_int_st8_27_tmp[1]), .cout(dm_int_st8_28_tmp[0]));
 	// Bit 28
-	full_adder FA865(.a(dm_int_st7_28[0]), .b(dm_int_st7_28[1]), .cin(dm_int_st7_28[2]), .s(dm_int_st8_28[1]), .cout(dm_int_st8_29[0]));
+	full_adder FA865(.a(dm_int_st7_28[0]), .b(dm_int_st7_28[1]), .cin(dm_int_st7_28[2]), .s(dm_int_st8_28_tmp[1]), .cout(dm_int_st8_29_tmp[0]));
 	// Bit 29
-	full_adder FA866(.a(dm_int_st7_29[0]), .b(dm_int_st7_29[1]), .cin(dm_int_st7_29[2]), .s(dm_int_st8_29[1]), .cout(dm_int_st8_30[0]));
+	full_adder FA866(.a(dm_int_st7_29[0]), .b(dm_int_st7_29[1]), .cin(dm_int_st7_29[2]), .s(dm_int_st8_29_tmp[1]), .cout(dm_int_st8_30_tmp[0]));
 	// Bit 30
-	full_adder FA867(.a(dm_int_st7_30[0]), .b(dm_int_st7_30[1]), .cin(dm_int_st7_30[2]), .s(dm_int_st8_30[1]), .cout(dm_int_st8_31[0]));
+	full_adder FA867(.a(dm_int_st7_30[0]), .b(dm_int_st7_30[1]), .cin(dm_int_st7_30[2]), .s(dm_int_st8_30_tmp[1]), .cout(dm_int_st8_31_tmp[0]));
 	// Bit 31
-	full_adder FA868(.a(dm_int_st7_31[0]), .b(dm_int_st7_31[1]), .cin(dm_int_st7_31[2]), .s(dm_int_st8_31[1]), .cout(dm_int_st8_32[0]));
+	full_adder FA868(.a(dm_int_st7_31[0]), .b(dm_int_st7_31[1]), .cin(dm_int_st7_31[2]), .s(dm_int_st8_31_tmp[1]), .cout(dm_int_st8_32_tmp[0]));
 	// Bit 32
-	full_adder FA869(.a(dm_int_st7_32[0]), .b(dm_int_st7_32[1]), .cin(dm_int_st7_32[2]), .s(dm_int_st8_32[1]), .cout(dm_int_st8_33[0]));
+	full_adder FA869(.a(dm_int_st7_32[0]), .b(dm_int_st7_32[1]), .cin(dm_int_st7_32[2]), .s(dm_int_st8_32_tmp[1]), .cout(dm_int_st8_33_tmp[0]));
 	// Bit 33
-	full_adder FA870(.a(dm_int_st7_33[0]), .b(dm_int_st7_33[1]), .cin(dm_int_st7_33[2]), .s(dm_int_st8_33[1]), .cout(dm_int_st8_34[0]));
+	full_adder FA870(.a(dm_int_st7_33[0]), .b(dm_int_st7_33[1]), .cin(dm_int_st7_33[2]), .s(dm_int_st8_33_tmp[1]), .cout(dm_int_st8_34_tmp[0]));
 	// Bit 34
-	full_adder FA871(.a(dm_int_st7_34[0]), .b(dm_int_st7_34[1]), .cin(dm_int_st7_34[2]), .s(dm_int_st8_34[1]), .cout(dm_int_st8_35[0]));
+	full_adder FA871(.a(dm_int_st7_34[0]), .b(dm_int_st7_34[1]), .cin(dm_int_st7_34[2]), .s(dm_int_st8_34_tmp[1]), .cout(dm_int_st8_35_tmp[0]));
 	// Bit 35
-	full_adder FA872(.a(dm_int_st7_35[0]), .b(dm_int_st7_35[1]), .cin(dm_int_st7_35[2]), .s(dm_int_st8_35[1]), .cout(dm_int_st8_36[0]));
+	full_adder FA872(.a(dm_int_st7_35[0]), .b(dm_int_st7_35[1]), .cin(dm_int_st7_35[2]), .s(dm_int_st8_35_tmp[1]), .cout(dm_int_st8_36_tmp[0]));
 	// Bit 36
-	full_adder FA873(.a(dm_int_st7_36[0]), .b(dm_int_st7_36[1]), .cin(dm_int_st7_36[2]), .s(dm_int_st8_36[1]), .cout(dm_int_st8_37[0]));
+	full_adder FA873(.a(dm_int_st7_36[0]), .b(dm_int_st7_36[1]), .cin(dm_int_st7_36[2]), .s(dm_int_st8_36_tmp[1]), .cout(dm_int_st8_37_tmp[0]));
 	// Bit 37
-	full_adder FA874(.a(dm_int_st7_37[0]), .b(dm_int_st7_37[1]), .cin(dm_int_st7_37[2]), .s(dm_int_st8_37[1]), .cout(dm_int_st8_38[0]));
+	full_adder FA874(.a(dm_int_st7_37[0]), .b(dm_int_st7_37[1]), .cin(dm_int_st7_37[2]), .s(dm_int_st8_37_tmp[1]), .cout(dm_int_st8_38_tmp[0]));
 	// Bit 38
-	full_adder FA875(.a(dm_int_st7_38[0]), .b(dm_int_st7_38[1]), .cin(dm_int_st7_38[2]), .s(dm_int_st8_38[1]), .cout(dm_int_st8_39[0]));
+	full_adder FA875(.a(dm_int_st7_38[0]), .b(dm_int_st7_38[1]), .cin(dm_int_st7_38[2]), .s(dm_int_st8_38_tmp[1]), .cout(dm_int_st8_39_tmp[0]));
 	// Bit 39
-	full_adder FA876(.a(dm_int_st7_39[0]), .b(dm_int_st7_39[1]), .cin(dm_int_st7_39[2]), .s(dm_int_st8_39[1]), .cout(dm_int_st8_40[0]));
+	full_adder FA876(.a(dm_int_st7_39[0]), .b(dm_int_st7_39[1]), .cin(dm_int_st7_39[2]), .s(dm_int_st8_39_tmp[1]), .cout(dm_int_st8_40_tmp[0]));
 	// Bit 40
-	full_adder FA877(.a(dm_int_st7_40[0]), .b(dm_int_st7_40[1]), .cin(dm_int_st7_40[2]), .s(dm_int_st8_40[1]), .cout(dm_int_st8_41[0]));
+	full_adder FA877(.a(dm_int_st7_40[0]), .b(dm_int_st7_40[1]), .cin(dm_int_st7_40[2]), .s(dm_int_st8_40_tmp[1]), .cout(dm_int_st8_41_tmp[0]));
 	// Bit 41
-	full_adder FA878(.a(dm_int_st7_41[0]), .b(dm_int_st7_41[1]), .cin(dm_int_st7_41[2]), .s(dm_int_st8_41[1]), .cout(dm_int_st8_42[0]));
+	full_adder FA878(.a(dm_int_st7_41[0]), .b(dm_int_st7_41[1]), .cin(dm_int_st7_41[2]), .s(dm_int_st8_41_tmp[1]), .cout(dm_int_st8_42_tmp[0]));
 	// Bit 42
-	full_adder FA879(.a(dm_int_st7_42[0]), .b(dm_int_st7_42[1]), .cin(dm_int_st7_42[2]), .s(dm_int_st8_42[1]), .cout(dm_int_st8_43[0]));
+	full_adder FA879(.a(dm_int_st7_42[0]), .b(dm_int_st7_42[1]), .cin(dm_int_st7_42[2]), .s(dm_int_st8_42_tmp[1]), .cout(dm_int_st8_43_tmp[0]));
 	// Bit 43
-	full_adder FA880(.a(dm_int_st7_43[0]), .b(dm_int_st7_43[1]), .cin(dm_int_st7_43[2]), .s(dm_int_st8_43[1]), .cout(dm_int_st8_44[0]));
+	full_adder FA880(.a(dm_int_st7_43[0]), .b(dm_int_st7_43[1]), .cin(dm_int_st7_43[2]), .s(dm_int_st8_43_tmp[1]), .cout(dm_int_st8_44_tmp[0]));
 	// Bit 44
-	full_adder FA881(.a(dm_int_st7_44[0]), .b(dm_int_st7_44[1]), .cin(dm_int_st7_44[2]), .s(dm_int_st8_44[1]), .cout(dm_int_st8_45[0]));
+	full_adder FA881(.a(dm_int_st7_44[0]), .b(dm_int_st7_44[1]), .cin(dm_int_st7_44[2]), .s(dm_int_st8_44_tmp[1]), .cout(dm_int_st8_45_tmp[0]));
 	// Bit 45
-	full_adder FA882(.a(dm_int_st7_45[0]), .b(dm_int_st7_45[1]), .cin(dm_int_st7_45[2]), .s(dm_int_st8_45[1]), .cout(dm_int_st8_46[0]));
+	full_adder FA882(.a(dm_int_st7_45[0]), .b(dm_int_st7_45[1]), .cin(dm_int_st7_45[2]), .s(dm_int_st8_45_tmp[1]), .cout(dm_int_st8_46_tmp[0]));
 	// Bit 46
-	full_adder FA883(.a(dm_int_st7_46[0]), .b(dm_int_st7_46[1]), .cin(dm_int_st7_46[2]), .s(dm_int_st8_46[1]), .cout(dm_int_st8_47[0]));
+	full_adder FA883(.a(dm_int_st7_46[0]), .b(dm_int_st7_46[1]), .cin(dm_int_st7_46[2]), .s(dm_int_st8_46_tmp[1]), .cout(dm_int_st8_47_tmp[0]));
 	// Bit 47
-	full_adder FA884(.a(dm_int_st7_47[0]), .b(dm_int_st7_47[1]), .cin(dm_int_st7_47[2]), .s(dm_int_st8_47[1]), .cout(dm_int_st8_48[0]));
+	full_adder FA884(.a(dm_int_st7_47[0]), .b(dm_int_st7_47[1]), .cin(dm_int_st7_47[2]), .s(dm_int_st8_47_tmp[1]), .cout(dm_int_st8_48_tmp[0]));
 	// Bit 48
-	full_adder FA885(.a(dm_int_st7_48[0]), .b(dm_int_st7_48[1]), .cin(dm_int_st7_48[2]), .s(dm_int_st8_48[1]), .cout(dm_int_st8_49[0]));
+	full_adder FA885(.a(dm_int_st7_48[0]), .b(dm_int_st7_48[1]), .cin(dm_int_st7_48[2]), .s(dm_int_st8_48_tmp[1]), .cout(dm_int_st8_49_tmp[0]));
 	// Bit 49
-	full_adder FA886(.a(dm_int_st7_49[0]), .b(dm_int_st7_49[1]), .cin(dm_int_st7_49[2]), .s(dm_int_st8_49[1]), .cout(dm_int_st8_50[0]));
+	full_adder FA886(.a(dm_int_st7_49[0]), .b(dm_int_st7_49[1]), .cin(dm_int_st7_49[2]), .s(dm_int_st8_49_tmp[1]), .cout(dm_int_st8_50_tmp[0]));
 	// Bit 50
-	full_adder FA887(.a(dm_int_st7_50[0]), .b(dm_int_st7_50[1]), .cin(dm_int_st7_50[2]), .s(dm_int_st8_50[1]), .cout(dm_int_st8_51[0]));
+	full_adder FA887(.a(dm_int_st7_50[0]), .b(dm_int_st7_50[1]), .cin(dm_int_st7_50[2]), .s(dm_int_st8_50_tmp[1]), .cout(dm_int_st8_51_tmp[0]));
 	// Bit 51
-	full_adder FA888(.a(dm_int_st7_51[0]), .b(dm_int_st7_51[1]), .cin(dm_int_st7_51[2]), .s(dm_int_st8_51[1]), .cout(dm_int_st8_52[0]));
+	full_adder FA888(.a(dm_int_st7_51[0]), .b(dm_int_st7_51[1]), .cin(dm_int_st7_51[2]), .s(dm_int_st8_51_tmp[1]), .cout(dm_int_st8_52_tmp[0]));
 	// Bit 52
-	full_adder FA889(.a(dm_int_st7_52[0]), .b(dm_int_st7_52[1]), .cin(dm_int_st7_52[2]), .s(dm_int_st8_52[1]), .cout(dm_int_st8_53[0]));
+	full_adder FA889(.a(dm_int_st7_52[0]), .b(dm_int_st7_52[1]), .cin(dm_int_st7_52[2]), .s(dm_int_st8_52_tmp[1]), .cout(dm_int_st8_53_tmp[0]));
 	// Bit 53
-	full_adder FA890(.a(dm_int_st7_53[0]), .b(dm_int_st7_53[1]), .cin(dm_int_st7_53[2]), .s(dm_int_st8_53[1]), .cout(dm_int_st8_54[0]));
+	full_adder FA890(.a(dm_int_st7_53[0]), .b(dm_int_st7_53[1]), .cin(dm_int_st7_53[2]), .s(dm_int_st8_53_tmp[1]), .cout(dm_int_st8_54_tmp[0]));
 	// Bit 54
-	full_adder FA891(.a(dm_int_st7_54[0]), .b(dm_int_st7_54[1]), .cin(dm_int_st7_54[2]), .s(dm_int_st8_54[1]), .cout(dm_int_st8_55[0]));
+	full_adder FA891(.a(dm_int_st7_54[0]), .b(dm_int_st7_54[1]), .cin(dm_int_st7_54[2]), .s(dm_int_st8_54_tmp[1]), .cout(dm_int_st8_55_tmp[0]));
 	// Bit 55
-	full_adder FA892(.a(dm_int_st7_55[0]), .b(dm_int_st7_55[1]), .cin(dm_int_st7_55[2]), .s(dm_int_st8_55[1]), .cout(dm_int_st8_56[0]));
+	full_adder FA892(.a(dm_int_st7_55[0]), .b(dm_int_st7_55[1]), .cin(dm_int_st7_55[2]), .s(dm_int_st8_55_tmp[1]), .cout(dm_int_st8_56_tmp[0]));
 	// Bit 56
-	full_adder FA893(.a(dm_int_st7_56[0]), .b(dm_int_st7_56[1]), .cin(dm_int_st7_56[2]), .s(dm_int_st8_56[1]), .cout(dm_int_st8_57[0]));
+	full_adder FA893(.a(dm_int_st7_56[0]), .b(dm_int_st7_56[1]), .cin(dm_int_st7_56[2]), .s(dm_int_st8_56_tmp[1]), .cout(dm_int_st8_57_tmp[0]));
 	// Bit 57
-	full_adder FA894(.a(dm_int_st7_57[0]), .b(dm_int_st7_57[1]), .cin(dm_int_st7_57[2]), .s(dm_int_st8_57[1]), .cout(dm_int_st8_58[0]));
+	full_adder FA894(.a(dm_int_st7_57[0]), .b(dm_int_st7_57[1]), .cin(dm_int_st7_57[2]), .s(dm_int_st8_57_tmp[1]), .cout(dm_int_st8_58_tmp[0]));
 	// Bit 58
-	full_adder FA895(.a(dm_int_st7_58[0]), .b(dm_int_st7_58[1]), .cin(dm_int_st7_58[2]), .s(dm_int_st8_58[1]), .cout(dm_int_st8_59[0]));
+	full_adder FA895(.a(dm_int_st7_58[0]), .b(dm_int_st7_58[1]), .cin(dm_int_st7_58[2]), .s(dm_int_st8_58_tmp[1]), .cout(dm_int_st8_59_tmp[0]));
 	// Bit 59
-	full_adder FA896(.a(dm_int_st7_59[0]), .b(dm_int_st7_59[1]), .cin(dm_int_st7_59[2]), .s(dm_int_st8_59[1]), .cout(dm_int_st8_60[0]));
+	full_adder FA896(.a(dm_int_st7_59[0]), .b(dm_int_st7_59[1]), .cin(dm_int_st7_59[2]), .s(dm_int_st8_59_tmp[1]), .cout(dm_int_st8_60_tmp[0]));
 	// Bit 60
-	full_adder FA897(.a(dm_int_st7_60[0]), .b(dm_int_st7_60[1]), .cin(dm_int_st7_60[2]), .s(dm_int_st8_60[1]), .cout(dm_int_st8_61[0]));
+	full_adder FA897(.a(dm_int_st7_60[0]), .b(dm_int_st7_60[1]), .cin(dm_int_st7_60[2]), .s(dm_int_st8_60_tmp[1]), .cout(dm_int_st8_61_tmp[0]));
 	// Bit 61
-	full_adder FA898(.a(dm_int_st7_61[0]), .b(dm_int_st7_61[1]), .cin(dm_int_st7_61[2]), .s(dm_int_st8_61[1]), .cout(dm_int_st8_62[0]));
+	full_adder FA898(.a(dm_int_st7_61[0]), .b(dm_int_st7_61[1]), .cin(dm_int_st7_61[2]), .s(dm_int_st8_61_tmp[1]), .cout(dm_int_st8_62_tmp[0]));
 	// Bit 62
-	assign dm_int_st8_62[1] = dm_int_st7_62[0];
+	assign dm_int_st8_62_tmp[1] = dm_int_st7_62[0];
 
 	// Adder Stage
-	wire [FXP32_DM_O_ADDR] cla_in_a, cla_in_b, sum;
+	wire [63:0] cla_in_a, cla_in_b, sum;
 	wire ovf;
 	assign cla_in_a[0] = dm_int_st8_0[0];
 	assign cla_in_b[0] = 1'b0;
@@ -5270,9 +5523,15 @@ module fxp32s_dadda_full(
 	assign cla_in_b[62] = dm_int_st8_62[1];
 	assign cla_in_a[63] = 1'b0;
 	assign cla_in_b[63] = 1'b0;
-	cla_64bit CLA(clk, cla_in_a, cla_in_b, 1'b0, sum, ovf);
+	cla_64bit_pipe CLA(clk, rstn, cla_in_a, cla_in_b, 1'b0, sum, ovf);
 
-	assign out_s[`FXP32_MAG] = sum[FXP32_DM_O_MAG];
-	assign out_s[`FXP32_SIGN] = neg_out;
+	reg neg_out;
+	always @(posedge clk) begin
+		neg_out <= neg_out_st_8 & rstn;
+	end
+
+	assign out_overflow = sum[61];
+	assign out_s[`FXP32S_MAG] = sum[60:30] | {`FXP32S_WIDTH-1{out_overflow}};
+	assign out_s[`FXP32S_SIGN] = neg_out;
 
 endmodule

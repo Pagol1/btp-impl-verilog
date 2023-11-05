@@ -10,26 +10,13 @@ module cla_64bit(
 	output [`BIT64_ADDR] out_s,
 	output out_overflow
 );
-	// Adder Params
-	localparam BIT64_CLA_L0_ADDR 63:0;
-	localparam BIT64_CLA_L1_ADDR 31:0;
-	localparam BIT64_CLA_L2_ADDR 15:0;
-	localparam BIT64_CLA_L3_ADDR 7:0;
-	localparam BIT64_CLA_L4_ADDR 3:0;
-	localparam BIT64_CLA_L5_ADDR 1:0;
-	localparam BIT64_CLA_L0_WIDTH 64;
-	localparam BIT64_CLA_L1_WIDTH 32;
-	localparam BIT64_CLA_L2_WIDTH 16;
-	localparam BIT64_CLA_L3_WIDTH 8;
-	localparam BIT64_CLA_L4_WIDTH 4;
-	localparam BIT64_CLA_L5_WIDTH 2;
 
-	wire [BIT64_CLA_L0_ADDR] gen0, prop0;
-	wire [BIT64_CLA_L1_ADDR] gen1, prop1;
-	wire [BIT64_CLA_L2_ADDR] gen2, prop2;
-	wire [BIT64_CLA_L3_ADDR] gen3, prop3;
-	wire [BIT64_CLA_L4_ADDR] gen4, prop4;
-	wire [BIT64_CLA_L5_ADDR] gen5, prop5;
+	wire [63:0] gen0, prop0;
+	wire [31:0] gen1, prop1;
+	wire [15:0] gen2, prop2;
+	wire [7:0] gen3, prop3;
+	wire [3:0] gen4, prop4;
+	wire [1:0] gen5, prop5;
 	wire gen6, prop6;
 	assign gen0 = in_a & in_b;
 	assign prop0 = in_a ^ in_b;
@@ -37,27 +24,27 @@ module cla_64bit(
 	// GP stage
 	genvar j;
 	generate
-		for (j=0; j<BIT64_CLA_L1_WIDTH; j=j+1) begin : CLA_GEN_PROP_L1
+		for (j=0; j<32; j=j+1) begin : CLA_GEN_PROP_L1
 			cla_gen_prop L1(gen0[2*j+1], gen0[2*j], prop0[2*j+1], prop0[2*j], gen1[j], prop1[j]);
 		end
 	endgenerate
 	generate
-		for (j=0; j<BIT64_CLA_L2_WIDTH; j=j+1) begin : CLA_GEN_PROP_L2
+		for (j=0; j<16; j=j+1) begin : CLA_GEN_PROP_L2
 			cla_gen_prop L2(gen1[2*j+1], gen1[2*j], prop1[2*j+1], prop1[2*j], gen2[j], prop2[j]);
 		end
 	endgenerate
 	generate
-		for (j=0; j<BIT64_CLA_L3_WIDTH; j=j+1) begin : CLA_GEN_PROP_L3
+		for (j=0; j<8; j=j+1) begin : CLA_GEN_PROP_L3
 			cla_gen_prop L3(gen2[2*j+1], gen2[2*j], prop2[2*j+1], prop2[2*j], gen3[j], prop3[j]);
 		end
 	endgenerate
 	generate
-		for (j=0; j<BIT64_CLA_L4_WIDTH; j=j+1) begin : CLA_GEN_PROP_L4
+		for (j=0; j<4; j=j+1) begin : CLA_GEN_PROP_L4
 			cla_gen_prop L4(gen3[2*j+1], gen3[2*j], prop3[2*j+1], prop3[2*j], gen4[j], prop4[j]);
 		end
 	endgenerate
 	generate
-		for (j=0; j<BIT64_CLA_L5_WIDTH; j=j+1) begin : CLA_GEN_PROP_L5
+		for (j=0; j<2; j=j+1) begin : CLA_GEN_PROP_L5
 			cla_gen_prop L5(gen4[2*j+1], gen4[2*j], prop4[2*j+1], prop4[2*j], gen5[j], prop5[j]);
 		end
 	endgenerate
@@ -103,8 +90,8 @@ module cla_64bit(
 	// 2-bit RCA chain
 	generate
 		for (j=0; j<`BIT64_WIDTH/2; j=j+1) begin : RCA_CHAIN
-			rca RCA(in_A[2*j+1:2*j], in_B[2*j+1:2*j], cry[j], out_s[2*j+1:2*j]);
+			rca RCA(in_a[2*j+1:2*j], in_b[2*j+1:2*j], cry[j], out_s[2*j+1:2*j]);
 		end
 	endgenerate
-	assign out_overflow = (gen6 | (prop6 & in_carry)) ^ (gen0[62] | (prop0[62] & cry[31])));
+	assign out_overflow = (gen6 | (prop6 & in_carry)) ^ (gen0[62] | (prop0[62] & cry[31]));
 endmodule

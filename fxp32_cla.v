@@ -10,23 +10,12 @@ module fxp32_cla(
 	output [`FXP32_ADDR] out_s,
 	output out_overflow
 );
-	// Adder Params
-	localparam FXP32_CLA_L0_ADDR 31:0;
-	localparam FXP32_CLA_L1_ADDR 15:0;
-	localparam FXP32_CLA_L2_ADDR 7:0;
-	localparam FXP32_CLA_L3_ADDR 3:0;
-	localparam FXP32_CLA_L4_ADDR 1:0;
-	localparam FXP32_CLA_L0_WIDTH 32;
-	localparam FXP32_CLA_L1_WIDTH 16;
-	localparam FXP32_CLA_L2_WIDTH 8;
-	localparam FXP32_CLA_L3_WIDTH 4;
-	localparam FXP32_CLA_L4_WIDTH 2;
 
-	wire [FXP32_CLA_L0_ADDR] gen0, prop0;
-	wire [FXP32_CLA_L1_ADDR] gen1, prop1;
-	wire [FXP32_CLA_L2_ADDR] gen2, prop2;
-	wire [FXP32_CLA_L3_ADDR] gen3, prop3;
-	wire [FXP32_CLA_L4_ADDR] gen4, prop4;
+	wire [31:0] gen0, prop0;
+	wire [15:0] gen1, prop1;
+	wire [7:0] gen2, prop2;
+	wire [3:0] gen3, prop3;
+	wire [1:0] gen4, prop4;
 	wire gen5, prop5;
 	assign gen0 = in_a & in_b;
 	assign prop0 = in_a ^ in_b;
@@ -34,22 +23,22 @@ module fxp32_cla(
 	// GP stage
 	genvar j;
 	generate
-		for (j=0; j<FXP32_CLA_L1_WIDTH; j=j+1) begin : CLA_GEN_PROP_L1
+		for (j=0; j<16; j=j+1) begin : CLA_GEN_PROP_L1
 			cla_gen_prop L1(gen0[2*j+1], gen0[2*j], prop0[2*j+1], prop0[2*j], gen1[j], prop1[j]);
 		end
 	endgenerate
 	generate
-		for (j=0; j<FXP32_CLA_L2_WIDTH; j=j+1) begin : CLA_GEN_PROP_L2
+		for (j=0; j<8; j=j+1) begin : CLA_GEN_PROP_L2
 			cla_gen_prop L2(gen1[2*j+1], gen1[2*j], prop1[2*j+1], prop1[2*j], gen2[j], prop2[j]);
 		end
 	endgenerate
 	generate
-		for (j=0; j<FXP32_CLA_L3_WIDTH; j=j+1) begin : CLA_GEN_PROP_L3
+		for (j=0; j<4; j=j+1) begin : CLA_GEN_PROP_L3
 			cla_gen_prop L3(gen2[2*j+1], gen2[2*j], prop2[2*j+1], prop2[2*j], gen3[j], prop3[j]);
 		end
 	endgenerate
 	generate
-		for (j=0; j<FXP32_CLA_L4_WIDTH; j=j+1) begin : CLA_GEN_PROP_L4
+		for (j=0; j<2; j=j+1) begin : CLA_GEN_PROP_L4
 			cla_gen_prop L4(gen3[2*j+1], gen3[2*j], prop3[2*j+1], prop3[2*j], gen4[j], prop4[j]);
 		end
 	endgenerate
@@ -79,8 +68,8 @@ module fxp32_cla(
 	// 2-bit RCA chain
 	generate
 		for (j=0; j<`FXP32_WIDTH/2; j=j+1) begin : RCA_CHAIN
-			rca RCA(in_A[2*j+1:2*j], in_B[2*j+1:2*j], cry[j], out_s[2*j+1:2*j]);
+			rca RCA(in_a[2*j+1:2*j], in_b[2*j+1:2*j], cry[j], out_s[2*j+1:2*j]);
 		end
 	endgenerate
-	assign out_overflow = (gen5 | (prop5 & in_carry)) ^ (gen0[30] | (prop0[30] & cry[15])));
+	assign out_overflow = (gen5 | (prop5 & in_carry)) ^ (gen0[30] | (prop0[30] & cry[15]));
 endmodule

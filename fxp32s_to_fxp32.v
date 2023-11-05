@@ -1,6 +1,6 @@
 `include "my_defines.vh"
 
-module fxp32_to_fxp32s(
+module fxp32s_to_fxp32(
 	input clk,
 	input [`FXP32_ADDR] in_a,
 	input in_carry,

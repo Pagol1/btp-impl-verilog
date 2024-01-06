@@ -88,20 +88,20 @@ def gen_fast_adder():
 
 if __name__ == "__main__":
     ### Configuration
-    # FXP32
-    IO_PRE = "`FXP32_"
-    INT_PRE = "`FXP32_FA_"
-    MODULE_FILE_NAME = "fxp32_fast_adder.v"
-    ## FXP32_pipe
-    # MODULE_FILE_NAME = "fxp32_cla_pipe.v"
-    BIT_LEN = 32
-    # ## FXP64
-    # IO_PRE = "`BIT64_"
-    # INT_PRE = "`BIT64_CLA_"
-    # # MODULE_FILE_NAME = "cla_64bit.v"
-    # ## FXP64_pipe
-    # MODULE_FILE_NAME = "cla_64bit_pipe.v"
-    # BIT_LEN = 64
+    # # FXP32
+    # IO_PRE = "`FXP32_"
+    # INT_PRE = "`FXP32_FA_"
+    # MODULE_FILE_NAME = "fxp32_fast_adder.v"
+    # ## FXP32_pipe
+    # # MODULE_FILE_NAME = "fxp32_cla_pipe.v"
+    # BIT_LEN = 32
+    ## FXP64
+    IO_PRE = "`BIT64_"
+    INT_PRE = "`BIT64_CLA_"
+    # MODULE_FILE_NAME = "cla_64bit.v"
+    ## FXP64_pipe
+    MODULE_FILE_NAME = "fast_adder_64bit.v"
+    BIT_LEN = 64
     INDENT = 0
     op = gen_fast_adder()
     # op = gen_cla()

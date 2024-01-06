@@ -17,16 +17,16 @@ module fxp32_mac_tb;
 		// Wait 100 ns for global reset to finish
 		#100;
 		rstn <= 1'b1; prstn <= 1'b1; acc <= 1'b1; 
-		#50; in_a <= 32'h9C633320; in_b <= 32'h3E0A7FBE; 
-		#50; in_a <= 32'h6E254B8B; in_b <= 32'h942601F8; 
-		#50; in_a <= 32'h2F2CC39D; in_b <= 32'hAA705D0B; 
-		#50; in_a <= 32'hDEC4F88F; in_b <= 32'hE7649760; 
-		#50; in_a <= 32'hA96AC34F; in_b <= 32'hAA06D951; 
-		#50; in_a <= 32'hC3A6F2FF; in_b <= 32'h4DF5339A; 
-		#50; in_a <= 32'hB9E1DB1; in_b <= 32'hBBE949D; 
-		#50; in_a <= 32'h3EF04FDD; in_b <= 32'h3C7B9748; 
-		#50; in_a <= 32'h610403B5; in_b <= 32'hA77D0F8A; 
-		#50; in_a <= 32'hB474FF8; in_b <= 32'hE28D1059; 
+		#50; in_a <= 32'h25733D36; in_b <= 32'hFAF31EDE; 
+		#50; in_a <= 32'hF3C4D562; in_b <= 32'hE99616FA; 
+		#50; in_a <= 32'hF65CD36C; in_b <= 32'h1E3F66E9; 
+		#50; in_a <= 32'hF0C1A3D3; in_b <= 32'h14B54519; 
+		#50; in_a <= 32'hBB12C1DE; in_b <= 32'h09DBDF14; 
+		#50; in_a <= 32'hE4848079; in_b <= 32'h0BD19FEA; 
+		#50; in_a <= 32'hE9CE59C3; in_b <= 32'h15FB35B9; 
+		#50; in_a <= 32'hB9B4C4AC; in_b <= 32'h08366123; 
+		#50; in_a <= 32'h0E0E089A; in_b <= 32'h4466EEF6; 
+		#50; in_a <= 32'hED8BA67B; in_b <= 32'hC359B83F; 
 	end
 
 	initial begin

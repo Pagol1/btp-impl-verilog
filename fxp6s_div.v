@@ -19,16 +19,16 @@ module fxp6s_div(
 	assign div_q_mask[0] = in_d[4];
 	generate
 		for (i=1; i<2; i=i+1) begin : DIV_MASK
-			assign div_q_mask[i] = div_q_mask[i] | in_d[4-i];
+			assign div_q_mask[i] = div_q_mask[i-1] | in_d[4-i];
 		end
 	endgenerate
 	// Stage 0 : 2^2
 	wire [2:0] div_st0_s;
 	wire [2:0] div_st0_b;
 	wire [2:0] div_st0_q;
-	restoring_subtractor RS_lEnd_0(in_n[4], 1'b0, div_st0_b[1], out_q[4], div_st0_s[2], div_st0_b[2], div_st0_q[2]);
+	restoring_subtractor RS_lEnd_0(in_n[4], in_d[2], div_st0_b[1], out_q[4], div_st0_s[2], div_st0_b[2], div_st0_q[2]);
 	generate
-		for (i=1; i>=1; i=i-1) begin : RS_ROW_N_NEW
+		for (i=1; i>=1; i=i-1) begin : RS_ROW_N_NEW_0
 			restoring_subtractor RS_0(in_n[i+2], in_d[i], div_st0_b[i-1], div_st0_q[i+1], div_st0_s[i], div_st0_b[i], div_st0_q[i]);
 		end
 	endgenerate
@@ -38,14 +38,14 @@ module fxp6s_div(
 	wire [3:0] div_st1_s;
 	wire [3:0] div_st1_b;
 	wire [3:0] div_st1_q;
-	restoring_subtractor RS_lEnd_1(div_st0_s[2], 1'b0, div_st1_b[2], out_q[3], div_st1_s[3], div_st1_b[3], div_st1_q[3]);
+	restoring_subtractor RS_lEnd_1(div_st0_s[2], in_d[3], div_st1_b[2], out_q[3], div_st1_s[3], div_st1_b[3], div_st1_q[3]);
 	generate
-		for (i=2; i>1; i=i-1) begin : RS_ROW_N_USED
+		for (i=2; i>=1; i=i-1) begin : RS_ROW_N_USED_1
 			restoring_subtractor RS_1(div_st0_s[i-1], in_d[i], div_st1_b[i-1], div_st1_q[i+1], div_st1_s[i], div_st1_b[i], div_st1_q[i]);
 		end
 	endgenerate
 	generate
-		for (i=0; i>=1; i=i-1) begin : RS_ROW_N_NEW
+		for (i=0; i>=1; i=i-1) begin : RS_ROW_N_NEW_1
 			restoring_subtractor RS_1(in_n[i+1], in_d[i], div_st1_b[i-1], div_st1_q[i+1], div_st1_s[i], div_st1_b[i], div_st1_q[i]);
 		end
 	endgenerate
@@ -55,14 +55,14 @@ module fxp6s_div(
 	wire [4:0] div_st2_s;
 	wire [4:0] div_st2_b;
 	wire [4:0] div_st2_q;
-	restoring_subtractor RS_lEnd_2(div_st1_s[3], 1'b0, div_st2_b[3], out_q[2], div_st2_s[4], div_st2_b[4], div_st2_q[4]);
+	restoring_subtractor RS_lEnd_2(div_st1_s[3], in_d[4], div_st2_b[3], out_q[2], div_st2_s[4], div_st2_b[4], div_st2_q[4]);
 	generate
-		for (i=3; i>1; i=i-1) begin : RS_ROW_N_USED
+		for (i=3; i>=1; i=i-1) begin : RS_ROW_N_USED_2
 			restoring_subtractor RS_2(div_st1_s[i-1], in_d[i], div_st2_b[i-1], div_st2_q[i+1], div_st2_s[i], div_st2_b[i], div_st2_q[i]);
 		end
 	endgenerate
 	generate
-		for (i=0; i>=1; i=i-1) begin : RS_ROW_N_NEW
+		for (i=0; i>=1; i=i-1) begin : RS_ROW_N_NEW_2
 			restoring_subtractor RS_2(in_n[i+0], in_d[i], div_st2_b[i-1], div_st2_q[i+1], div_st2_s[i], div_st2_b[i], div_st2_q[i]);
 		end
 	endgenerate
@@ -74,7 +74,7 @@ module fxp6s_div(
 	wire [5:0] div_st3_q;
 	restoring_subtractor RS_lEnd_3(div_st2_s[4], 1'b0, div_st3_b[4], out_q[1], div_st3_s[5], div_st3_b[5], div_st3_q[5]);
 	generate
-		for (i=4; i>1; i=i-1) begin : RS_ROW_N_USED
+		for (i=4; i>0; i=i-1) begin : RS_ROW_N_USED_3
 			restoring_subtractor RS_3(div_st2_s[i-1], in_d[i], div_st3_b[i-1], div_st3_q[i+1], div_st3_s[i], div_st3_b[i], div_st3_q[i]);
 		end
 	endgenerate
@@ -86,7 +86,7 @@ module fxp6s_div(
 	wire [5:0] div_st4_q;
 	restoring_subtractor RS_lEnd_4(div_st3_s[4], 1'b0, div_st4_b[4], out_q[0], div_st4_s[5], div_st4_b[5], div_st4_q[5]);
 	generate
-		for (i=4; i>1; i=i-1) begin : RS_ROW_N_USED
+		for (i=4; i>0; i=i-1) begin : RS_ROW_N_USED_4
 			restoring_subtractor RS_4(div_st3_s[i-1], in_d[i], div_st4_b[i-1], div_st4_q[i+1], div_st4_s[i], div_st4_b[i], div_st4_q[i]);
 		end
 	endgenerate

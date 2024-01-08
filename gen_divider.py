@@ -74,7 +74,7 @@ def rs_args(st_n, idx):
     return ret
 
 ## n_i | d_i | b_i | q_i | s_o | b_o | q_o
-def get_rs_args(st_n, idx, use_n, n_id, l_end, r_end):
+def get_rs_args(st_n, idx, use_n, n_id, d_zero, l_end, r_end):
     global BIT_LEN
     ret = "("
     # n_i
@@ -88,7 +88,7 @@ def get_rs_args(st_n, idx, use_n, n_id, l_end, r_end):
     else:
         ret += "1'b0, "
     # d_i
-    if not l_end:
+    if not d_zero:
         ret += "in_d[{}], ".format(idx)
     else:
         ret += "1'b0, "
@@ -170,7 +170,7 @@ def gen_divider():
                 min(MSB_POW, BIT_LEN-2)
             ))
         mask_bits = min(MSB_POW, BIT_LEN-2)
-        op += pp("assign div_q_mask[i] = div_q_mask[i] | in_d[{}-i];".format(BIT_LEN-2))
+        op += pp("assign div_q_mask[i] = div_q_mask[i-1] | in_d[{}-i];".format(BIT_LEN-2))
         op += pp("end")
         op += pp("endgenerate")
 
@@ -196,24 +196,27 @@ def gen_divider():
             ### q_in = {Q[BL-2-used_bits], idx+1}, rest = idx
         ## Count number of blocks in "group" ==> Add generate
         if (used_n >= 1):
-            op += pp("restoring_subtractor RS_lEnd_{}".format(used_bits) + get_rs_args(used_bits, n_tgt-1, False, "", True, False))
+            op += pp("restoring_subtractor RS_lEnd_{}".format(used_bits) + get_rs_args(used_bits, n_tgt-1, False, "", False, True, False))
         else:
-            op += pp("restoring_subtractor RS_lEnd_{}".format(used_bits) + get_rs_args(used_bits, n_tgt-1, True, f"{MSB_POW-LSB_POW}", True, False))
+            op += pp("restoring_subtractor RS_lEnd_{}".format(used_bits) + get_rs_args(used_bits, n_tgt-1, True, f"{MSB_POW-LSB_POW}", False, True, False))
         ## Chain Used
         if (used_n >= 2):
             op += pp("generate")
-            op += pp( "for (i={}; i>{}; i=i-1) begin : RS_ROW_N_USED".format(n_tgt-2, max(n_tgt-used_n, 1)) )
-            op += pp( "restoring_subtractor RS_{}".format(used_bits) + get_rs_args(used_bits, "i", False, "", False, False) )
+            op += pp( "for (i={}; i>={}; i=i-1) begin : RS_ROW_N_USED_{}".format(n_tgt-2, max(n_tgt-used_n, 1), used_bits) )
+            op += pp( "restoring_subtractor RS_{}".format(used_bits) + get_rs_args(used_bits, "i", False, "", False, False, False) )
             op += pp( "end" )
             op += pp("endgenerate")
         ## Chain Free
         if (n_tgt > used_n):
             op += pp("generate")
-            op += pp( "for (i={}; i>={}; i=i-1) begin : RS_ROW_N_NEW".format(n_tgt-used_n-1-(used_n==0), 1) )
-            op += pp( "restoring_subtractor RS_{}".format(used_bits) + get_rs_args(used_bits, "i", True, "i+{}".format(power), False, False) )
+            op += pp( "for (i={}; i>={}; i=i-1) begin : RS_ROW_N_NEW_{}".format(n_tgt-used_n-1-1*(used_n==0), 1, used_bits) )
+            op += pp( "restoring_subtractor RS_{}".format(used_bits) + get_rs_args(used_bits, "i", True, "i+{}".format(power), False, False, False) )
             op += pp( "end" )
             op += pp("endgenerate")
-            op += pp("restoring_subtractor RS_rEnd_{}".format(used_bits) + get_rs_args(used_bits, 0, True, power, False, True))
+            op += pp("restoring_subtractor RS_rEnd_{}".format(used_bits) + get_rs_args(used_bits, 0, True, power, False, False, True))
+        else:   ## Not a valid scenario but OK
+            print("[WARN]")
+            op += pp("restoring_subtractor RS_rEnd_{}".format(used_bits) + get_rs_args(used_bits, 0, False, "", False, False, True))
         op += pp("assign out_q[{}] = ~(div_q_mask[{}] | {}_b[{}]);".format(BIT_LEN-2-used_bits, power-1, wire_st(used_bits), n_tgt-1))
         used_n = n_tgt
         used_bits += 1
@@ -226,33 +229,33 @@ def gen_divider():
         op += pp("wire [{}:0] {}_q;".format(n_tgt-1, wire_st(used_bits)))
         if (power == 0):
             if (used_n >= 1):
-                op += pp("restoring_subtractor RS_lEnd_{}".format(used_bits) + get_rs_args(used_bits, n_tgt-1, False, "", True, False))
+                op += pp("restoring_subtractor RS_lEnd_{}".format(used_bits) + get_rs_args(used_bits, n_tgt-1, False, "", False, True, False))
             else:
-                op += pp("restoring_subtractor RS_lEnd_{}".format(used_bits) + get_rs_args(used_bits, n_tgt-1, True, f"{MSB_POW-LSB_POW}", True, False))
+                op += pp("restoring_subtractor RS_lEnd_{}".format(used_bits) + get_rs_args(used_bits, n_tgt-1, True, f"{MSB_POW-LSB_POW}", False, True, False))
             if (used_n >= 2):
                 op += pp("generate")
-                op += pp( "for (i={}; i>{}; i=i-1) begin : RS_ROW_N_USED".format(n_tgt-2, max(n_tgt-used_n, 1)) )
-                op += pp( "restoring_subtractor RS_{}".format(used_bits) + get_rs_args(used_bits, "i", False, "", False, False) )
+                op += pp( "for (i={}; i>={}; i=i-1) begin : RS_ROW_N_USED_{}".format(n_tgt-2, max(n_tgt-used_n, 1), used_bits) )
+                op += pp( "restoring_subtractor RS_{}".format(used_bits) + get_rs_args(used_bits, "i", False, "", False, False, False) )
                 op += pp( "end" )
                 op += pp("endgenerate")
             if (n_tgt > used_n):
                 op += pp("generate")
-                op += pp( "for (i={}; i>={}; i=i-1) begin : RS_ROW_N_NEW".format(n_tgt-used_n-1-(used_n==0), 1) )
-                op += pp( "restoring_subtractor RS_{}".format(used_bits) + get_rs_args(used_bits, "i", True, "i+{}".format(power), False, False) )
+                op += pp( "for (i={}; i>={}; i=i-1) begin : RS_ROW_N_NEW_{}".format(n_tgt-used_n-1-1*(used_n==0), 1, used_bits) )
+                op += pp( "restoring_subtractor RS_{}".format(used_bits) + get_rs_args(used_bits, "i", True, "i+{}".format(power), False, False, False) )
                 op += pp( "end" )
                 op += pp("endgenerate")
-                op += pp("restoring_subtractor RS_rEnd_{}".format(used_bits) + get_rs_args(used_bits, 0, True, power, False, True))
+                op += pp("restoring_subtractor RS_rEnd_{}".format(used_bits) + get_rs_args(used_bits, 0, True, power, False, False, True))
             else:
-                op += pp("restoring_subtractor RS_rEnd_{}".format(used_bits) + get_rs_args(used_bits, 0, False, "", False, True))
+                op += pp("restoring_subtractor RS_rEnd_{}".format(used_bits) + get_rs_args(used_bits, 0, False, "", False, False, True))
             used_n = n_tgt
         else:
-            op += pp("restoring_subtractor RS_lEnd_{}".format(used_bits) + get_rs_args(used_bits, n_tgt-1, False, "", True, False))
+            op += pp("restoring_subtractor RS_lEnd_{}".format(used_bits) + get_rs_args(used_bits, n_tgt-1, False, "", True, True, False))
             op += pp("generate")
-            op += pp( "for (i={}; i>{}; i=i-1) begin : RS_ROW_N_USED".format(n_tgt-2, 1) )
-            op += pp( "restoring_subtractor RS_{}".format(used_bits) + get_rs_args(used_bits, "i", False, "", False, False) )
+            op += pp( "for (i={}; i>{}; i=i-1) begin : RS_ROW_N_USED_{}".format(n_tgt-2, 0, used_bits) )
+            op += pp( "restoring_subtractor RS_{}".format(used_bits) + get_rs_args(used_bits, "i", False, "", False, False, False) )
             op += pp( "end" )
             op += pp("endgenerate")
-            op += pp("restoring_subtractor RS_rEnd_{}".format(used_bits) + get_rs_args(used_bits, 0, False, "", False, True))
+            op += pp("restoring_subtractor RS_rEnd_{}".format(used_bits) + get_rs_args(used_bits, 0, False, "", False, False, True))
         op += pp("assign out_q[{}] = ~{}_b[{}];".format(BIT_LEN-2-used_bits, wire_st(used_bits), n_tgt-1))
         used_bits += 1
 

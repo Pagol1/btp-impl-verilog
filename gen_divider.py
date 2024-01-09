@@ -4,6 +4,7 @@
 # Multiplier is stuck in N bit range though so not worth it
 #####
 import math
+from gen_config import *
 
 def pp(msg):
     global INDENT
@@ -285,15 +286,18 @@ def gen_divider():
     return op
 
 if __name__ == "__main__":
+    global BIT_LEN
+    global IO_PRE
+    global LSB_POW
     INDENT = 0
     ###
-    BIT_LEN = 6
-    MODULE_FILE_NAME = "fxp{}s_div.v".format(BIT_LEN)
-    IO_PRE = "`FXP{}S_".format(BIT_LEN)
-    INT_PRE = "`FXP{}S_DIV_".format(BIT_LEN)
-    LSB_POW = -2
+    # BIT_LEN = 6
+    # MODULE_FILE_NAME = "fxp{}s_div.v".format(BIT_LEN)
+    # IO_PRE = "`FXP{}S_".format(BIT_LEN)
+    # INT_PRE = "`FXP{}S_DIV_".format(BIT_LEN)
+    # LSB_POW = -2
     MSB_POW = LSB_POW + (BIT_LEN-1) - 1
-
+    MODULE_FILE_NAME = "fxp{}s_div.v".format(BIT_LEN)
     # op = gen_divider()
     op = gen_divider()
     with open(MODULE_FILE_NAME, 'w') as f:

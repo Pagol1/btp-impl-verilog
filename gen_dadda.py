@@ -2,6 +2,7 @@
 # Verilog Code Generator
 #####
 import math
+from gen_config import *
 
 def pp(msg):
     global INDENT
@@ -469,31 +470,21 @@ def gen_dadda_pipe():
 
 
 if __name__ == "__main__":
+    global BIT_LEN
+    global IO_PRE
+    global LSB_POW
     INDENT = 0
     ###
-    BIT_LEN = 32
-    MODULE_FILE_NAME = "fxp32s_dadda.v"
-    ## Pipeline
-    MODULE_FILE_NAME = "fxp32s_dadda_pipe.v"
-    IO_PRE = "`FXP32S_"
-    INT_PRE = "`FXP32S_DM_"
-    LSB_POW = -30
-    ###
-    # BIT_LEN = 4
-    # MODULE_FILE_NAME = "bit4_dadda.v"
-    # IO_PRE = "`BIT4_"
-    # INT_PRE = "`BIT4_DM_"
-    # LSB_POW = -2
-    ###
-    # BIT_LEN = 8
-    # MODULE_FILE_NAME = "bit8_dadda.v"
-    # IO_PRE = "`BIT8_"
-    # INT_PRE = "`BIT8_DM_"
-    # LSB_POW = -7
-    ###
+    # BIT_LEN = 32
+    # MODULE_FILE_NAME = "fxp32s_dadda.v"
+    # ## Pipeline
+    # MODULE_FILE_NAME = "fxp32s_dadda_pipe.v"
+    # IO_PRE = "`FXP32S_"
+    # INT_PRE = "`FXP32S_DM_"
+    # LSB_POW = -30
     MSB_POW = LSB_POW + (BIT_LEN-1)
-
-    # op = gen_dadda()
-    op = gen_dadda_pipe()
+    MODULE_FILE_NAME = "fxp{}s_dadda.v".format(BIT_LEN)
+    op = gen_dadda()
+    # op = gen_dadda_pipe()
     with open(MODULE_FILE_NAME, 'w') as f:
         f.write(op)

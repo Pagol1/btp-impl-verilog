@@ -12,11 +12,11 @@ module fxp8s_pe(
 	input en_in,
 	input [`FXP8S_ADDR] in_data,		// 2's complement
 	input en_out,
-	output [`FXP8S_ADDR] out_data,		// 2's complement
+	output [`FXP8S_ADDR] out_data		// 2's complement
 );
 	
 	genvar i;
-	reg [2:0][7:0] in_buf;
+	reg [7:0] in_buf[2:0];
 	wire [7:0] in_mul_a;
 	reg [7:0] in_mul_b;
 	wire [7:0] out_mul_s;

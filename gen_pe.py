@@ -81,13 +81,13 @@ def gen_pe():
     op += pp("input en_in,")
     op += pp("input [" + ADDR + "] in_data,\t\t// 2's complement")
     op += pp("input en_out,")
-    op += pp("output [" + ADDR + "] out_data,\t\t// 2's complement")
+    op += pp("output [" + ADDR + "] out_data\t\t// 2's complement")
     INDENT -= 1
     op += pp (");"); INDENT += 1
     op += pp("")
     #### Module Core ####
     op += pp("genvar i;")
-    op += pp("reg [{}:0][{}:0] in_buf;".format(N-1, BIT_LEN-1))
+    op += pp("reg [{}:0] in_buf[{}:0];".format(BIT_LEN-1, N-1))
     op += pp("wire [{}:0] in_mul_a;".format(BIT_LEN-1))
     op += pp("reg [{}:0] in_mul_b;".format(BIT_LEN-1))
     op += pp("wire [{}:0] out_mul_s;".format(BIT_LEN-1))

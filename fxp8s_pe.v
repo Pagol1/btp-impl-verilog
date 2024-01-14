@@ -46,14 +46,14 @@ module fxp8s_pe(
 	wire pre_mul_a_c0;
 	assign pre_mul_a_a = in_mul_a ^ {8{in_mul_a[7]}};
 	assign pre_mul_a_c = in_mul_a[7];
-	assign {pre_mul_a_c0, mul_a[6:0]} = in_mul_a[6:0] + pre_mul_a_c;
+	assign {pre_mul_a_c0, mul_a[6:0]} = pre_mul_a_a[6:0] + pre_mul_a_c;
 	assign mul_a[7] = in_mul_a[7];
 	wire [7:0] pre_mul_b_a;
 	wire pre_mul_b_c;
 	wire pre_mul_b_c0;
 	assign pre_mul_b_a = in_mul_b ^ {8{in_mul_b[7]}};
 	assign pre_mul_b_c = in_mul_b[7];
-	assign {pre_mul_b_c0, mul_b[6:0]} = in_mul_b[6:0] + pre_mul_b_c;
+	assign {pre_mul_b_c0, mul_b[6:0]} = pre_mul_b_a[6:0] + pre_mul_b_c;
 	assign mul_b[7] = in_mul_b[7];
 	fxp8s_dadda MUL(clk, rstn, mul_a, mul_b, mul_s, out_mul_ovf);
 	// Convert SM -> 2C
@@ -65,6 +65,6 @@ module fxp8s_pe(
 	always @(posedge clk) begin
 		acc <= acc_in & {8{rstn}};
 	end
-	assign out_data = (en_out) ? acc : {8{1'bZ}};
+	assign out_data =  acc & {8{en_out}};
 
 endmodule

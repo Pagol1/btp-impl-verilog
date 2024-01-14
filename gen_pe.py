@@ -29,6 +29,7 @@ def pp(msg):
     return op
 
 def gen_2c_to_sm(name, w_in, w_out):
+    global BIT_LEN
     op = ""
     op += pp("wire [{}:0] {}_a;".format(BIT_LEN-1, name))
     op += pp("wire {}_c;".format(name))
@@ -37,11 +38,12 @@ def gen_2c_to_sm(name, w_in, w_out):
             "{" + str(BIT_LEN) + "{" + w_in + f"[{BIT_LEN-1}]" + "}};")
     op += pp("assign {}_c = {}[{}];".format(name, w_in, BIT_LEN-1))
     op += pp("assign {" + f"{name}_c0, {w_out}[{BIT_LEN-2}:0]" + "} = " + 
-            f"{w_in}[{BIT_LEN-2}:0] + {name}_c;")
+            f"{name}_a[{BIT_LEN-2}:0] + {name}_c;")
     op += pp(f"assign {w_out}[{BIT_LEN-1}] = {w_in}[{BIT_LEN-1}];")
     return op
 
 def gen_sm_to_2c(name, w_in, w_out):
+    global BIT_LEN
     op = ""
     op += pp("assign {}[{}:0] = {}[{}:0] ^ ".format(w_out, BIT_LEN-2, w_in, BIT_LEN-2) + 
             "{" + str(BIT_LEN-1) + "{" + w_in + f"[{BIT_LEN-1}]" + "}};")
@@ -129,7 +131,7 @@ def gen_pe():
     op += pp("acc <= acc_in & {" + str(BIT_LEN) + "{rstn}};")
     op += pp("end")
     ## Drive output
-    op += pp("assign out_data = (en_out) ? acc : {" + str(BIT_LEN) + "{1'bZ}};")
+    op += pp("assign out_data =  acc & {" + str(BIT_LEN) + "{en_out}};")
     ## Module End ##
     op += "\n"
     INDENT -= 1

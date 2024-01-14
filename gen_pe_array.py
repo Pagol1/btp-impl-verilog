@@ -38,12 +38,14 @@ def get_offset(N, row, col, o_w, i_w):
     for i, b in enumerate(mask):
         if (b == '1'):
             if (L-i == 1):
-                ret += "{" + "0, "*(o_w-i_w) + row + "} + "
+                ret += "{" + "1'b0, "*(o_w-i_w) + row + "} + "
             else:
-                ret += "{" + "0, "*(o_w-i_w-(L-i-1)) + row + ", 0"*(L-i-1) + "} + "
-    ret += "{" + "0, "*(o_w-i_w) + col + "}"
+                ret += "{" + "1'b0, "*(o_w-i_w-(L-i-1)) + row + ", 1'b0"*(L-i-1) + "} + "
+    ret += "{" + "1'b0, "*(o_w-i_w) + col + "}"
     return ret
 
+def get_zero(N):
+    return f"{N}'b" + N*"0"
 
 def gen_pe_array():
     '''
@@ -86,7 +88,7 @@ def gen_pe_array():
     op += pp("input rstn,")
     op += pp("// Input Stream")
     op += pp("input en_in_data,")               # Hold data till ready
-    op += pp("input rdy_in_data,")              # Data accepted
+    op += pp("output rdy_in_data,")              # Data accepted
     op += pp("input in_mat,")                   # A == 0 | B == 1
     op += pp("input in_new_row,")
     op += pp("input in_mat_done,")
@@ -96,7 +98,7 @@ def gen_pe_array():
     op += pp("input rdy_out_data,")
     op += pp("output out_mat,")
     op += pp("output out_new_row,")
-    op += pp("output [" + ADDR + "] out_data,")
+    op += pp("output [" + ADDR + "] out_data")
     INDENT -= 1
     op += pp(");"); INDENT += 1
     ## Module Start ##
@@ -105,13 +107,14 @@ def gen_pe_array():
     op += pp("wire input_done;")
     op += pp("//// Input Data Loader ////")
     N_W = math.ceil(math.log2(N))
-    BUF_DEP = math.ceil(math.log2(2*N*N))
+    BUF_DEP = 2*N*N
+    BUF_DEP_W = math.ceil(math.log2(2*N*N))
     BASE_A = 0
     BASE_B = N*N
     op += pp("reg [{}:0] in_col;".format( N_W-1 ))
-    op += pp("wire in_col_c;".format( N_W-1 ))
+    op += pp("reg in_col_c;".format( N_W-1 ))
     op += pp("reg [{}:0] in_row;".format( N_W-1 ))
-    op += pp("wire in_row_c;".format( N_W-1 ))
+    op += pp("reg in_row_c;".format( N_W-1 ))
     op += pp("wire in_row_end;")
     op += pp("wire in_col_end;")
     op += pp("reg [1:0] in_mat_loaded;")
@@ -121,18 +124,18 @@ def gen_pe_array():
     op += pp("wire in_mat_empty;")
     ## Load Control Logic
     ### Hold in_mat_done till NxN matrix is filled
-    op += pp("assign in_row_end = (in_row == {}'b".format(N_W) + bin(N-1)[2:].zfill(N_W) + "));");
-    op += pp("assign in_col_end = (in_col == {}'b".format(N_W) + bin(N-1)[2:].zfill(N_W) + "));");
+    op += pp("assign in_row_end = (in_row == {}'b".format(N_W) + bin(N-1)[2:].zfill(N_W) + ");");
+    op += pp("assign in_col_end = (in_col == {}'b".format(N_W) + bin(N-1)[2:].zfill(N_W) + ");");
     op += pp("assign in_mat_empty = (in_mat) ? ~in_mat_loaded[1] : ~in_mat_loaded[0];")
     ## NOTE:
     # Zero Pad should read the last element first and then be used
     # in_col and in_row are same cycle as well then
-    op += pp("assign zero_pad = (in_col != {}'b".format(N_W) + bin(N-1)[2:].zfill(N_W) + ") & (in_new_row | ((in_row != {}'b".format(N_W) + bin(N-1)[2:].zfill(N_W) + ") & in_mat_done));")
+    op += pp("assign zero_pad = ( (in_new_row & ~in_col_end) | (in_mat_done & ~(in_row_end & in_col_end)) ) & in_mat_empty;")
     op += pp("assign rdy_in_data = en_in_data & ~zero_pad & in_mat_empty;")
-    op += pp("assign wr_en = en_in_data & (rdy_in_data | zero_pad);")
+    op += pp("assign wr_en = en_in_data & (rdy_in_data | zero_pad) & ~input_done;")
     op += pp("always @(posedge clk) begin")
-    op += pp( "{in_col_c, in_col} <= (en_in_data ? ((in_col_end) ? 0 : in_col + 1'b1) : {0, in_col}) & {"+f"{BUF_DEP+1}"+"{rstn}};" )
-    op += pp( "{in_row_c, in_row} <= (en_in_data ? ((in_row_end) ? 0 : in_row + 1'b1) : {0, in_row}) & {"+f"{BUF_DEP+1}"+"{rstn}};" )
+    op += pp( "{in_col_c, in_col} <= (wr_en ? ((in_col_end) ? " + get_zero(N_W+1) + " : in_col + 1'b1) : {1'b0, in_col}) & {"+f"{N_W+1}"+"{rstn}};" )
+    op += pp( "{in_row_c, in_row} <= ((wr_en & in_col_end) ? ((in_row_end) ? " + get_zero(N_W+1) + " : in_row + 1'b1) : {1'b0, in_row}) & {"+f"{N_W+1}"+"{rstn}};" )
     op += pp( "zero_pad_d <= zero_pad & rstn;" )
     # TODO: Add refresh on output
     op += pp( "in_mat_loaded[1] <= rstn & (in_mat_loaded[1] | (in_col_end & in_row_end & in_mat));")
@@ -141,21 +144,21 @@ def gen_pe_array():
     #### Buffer ####
     op += pp("// Data Buffer //")
     op += pp(f"reg [{BIT_LEN-1}:0] data [{BUF_DEP-1}:0];")
-    op += pp("reg [{}:0] base_reg_A;".format( BUF_DEP-1 ))
-    op += pp("reg [{}:0] base_reg_B;".format( BUF_DEP-1 ))
+    op += pp("reg [{}:0] base_reg_A;".format( BUF_DEP_W-1 ))
+    op += pp("reg [{}:0] base_reg_B;".format( BUF_DEP_W-1 ))
     op += pp("always @(posedge clk) begin // Fixed base registers")
-    op += pp( "base_reg_A <= {}'b".format(BUF_DEP) + bin(BASE_A)[2:].zfill(BUF_DEP) + ";" )
-    op += pp( "base_reg_B <= {}'b".format(BUF_DEP) + bin(BASE_B)[2:].zfill(BUF_DEP) + ";" )
+    op += pp( "base_reg_A <= {}'b".format(BUF_DEP_W) + bin(BASE_A)[2:].zfill(BUF_DEP_W) + ";" )
+    op += pp( "base_reg_B <= {}'b".format(BUF_DEP_W) + bin(BASE_B)[2:].zfill(BUF_DEP_W) + ";" )
     op += pp("end")
-    op += pp("wire [{}:0] wr_base_addr;".format( BUF_DEP-1 ))
-    op += pp("wire [{}:0] wr_offset;".format( BUF_DEP-1 ))
-    op += pp("wire [{}:0] wr_tgt_addr;".format( BUF_DEP-1 ))
+    op += pp("wire [{}:0] wr_base_addr;".format( BUF_DEP_W-1 ))
+    op += pp("wire [{}:0] wr_offset;".format( BUF_DEP_W-1 ))
+    op += pp("wire [{}:0] wr_tgt_addr;".format( BUF_DEP_W-1 ))
     op += pp("wire wr_addr_c;")
     op += pp("wire [{}:0] wr_data;".format(BIT_LEN-1))
     ## Buffer Definitions WR
-    op += pp("assign wr_data = zero_pad_d ? 0 : in_data;")
-    op += pp("assign wr_base_addr = in_mat ? base_reg_A : base_reg_B;")
-    off_str = "in_mat ? (" + get_offset(N, "in_row", "in_col", BUF_DEP, N_W) + ") : (" + get_offset(N, "in_col", "in_row", BUF_DEP, N_W) + ")" 
+    op += pp("assign wr_data = zero_pad_d ? " + get_zero(BIT_LEN) + " : in_data;")
+    op += pp("assign wr_base_addr = in_mat ? base_reg_B : base_reg_A;")
+    off_str = "in_mat ? (" + get_offset(N, "in_col", "in_row", BUF_DEP_W, N_W) + ") : (" + get_offset(N, "in_row", "in_col", BUF_DEP_W, N_W) + ")" 
     op += pp("assign wr_offset = " + off_str + ";" )
     op += pp("assign {wr_addr_c, wr_tgt_addr} = wr_base_addr + wr_offset;")
     op += pp("always @(posedge clk) begin")
@@ -167,34 +170,34 @@ def gen_pe_array():
     op += pp("wire rd_mat_done;")
     op += pp("reg sched_col;")
     op += pp("reg sched_done;")
-    op += pp("reg [{}:0] rd_offset;".format(BUF_DEP-1))
-    op += pp("wire [{}:0] rd_tgt_addr;".format(BUF_DEP-1))
-    op += pp("wire rd_off_c;")
+    op += pp("reg [{}:0] rd_offset;".format(BUF_DEP_W-1))
+    op += pp("wire [{}:0] rd_tgt_addr;".format(BUF_DEP_W-1))
+    op += pp("reg rd_off_c;")
     # ROW_DONE ==> Switch next cycle
-    op += pp("assign rd_mat_done = (rd_offset == {}'b".format(BUF_DEP) + bin(N*N-N)[2:].zfill(BUF_DEP) + ");")
+    op += pp("assign rd_mat_done = (rd_offset == {}'b".format(BUF_DEP_W) + bin(N*N-N)[2:].zfill(BUF_DEP_W) + ");")
     op += pp("assign rd_tgt_addr = sched_col ? base_reg_A : base_reg_B;")
     op += pp("always @(posedge clk) begin")
     op += pp( "sched_col <= rstn & (rd_mat_done & input_done | sched_col);" )
-    op += pp( "{rd_off_c, rd_offset} <= (sched_done ? {0, rd_offset} : rd_offset" + " + {}'b".format(BUF_DEP) + bin(N)[2:].zfill(BUF_DEP) + ") & {"+f"{BUF_DEP+1}"+"{rstn}};" )
+    op += pp( "{rd_off_c, rd_offset} <= (sched_done ? {1'b0, rd_offset} : rd_offset" + " + {}'b".format(BUF_DEP_W) + bin(N)[2:].zfill(BUF_DEP_W) + ") & {"+f"{BUF_DEP_W+1}"+"{rstn}};" )
     op += pp( "sched_done <= rd_mat_done & sched_col & rstn;" )
     op += pp("end")
     # A is row major | B is column major #
     ### PE NoC
-    op += pp("wire [{}:0] noc_row_data [{}:0];".format(BIT_LEN-1, N_W-1))
-    op += pp("wire [{}:0] noc_row_addr [{}:0];".format(BUF_DEP-1, N_W-1))
-    op += pp("wire [{}:0] noc_row_c;".format(N_W-1))
-    op += pp("wire [{}:0] noc_col_data [{}:0];".format(BIT_LEN-1, N_W-1))
-    op += pp("wire [{}:0] noc_col_addr [{}:0];".format(BUF_DEP-1, N_W-1))
-    op += pp("wire [{}:0] noc_col_c;".format(N_W-1))
-    op += pp("wire [{}:0] noc_in_data [{}:0][{}:0];".format(BIT_LEN-1, N_W-1, N_W-1))
-    op += pp("wire [{}:0] noc_out_data [{}:0][{}:0];".format(BIT_LEN-1, N_W-1, N_W-1))
-    op += pp("wire noc_out_en [{}:0][{}:0];".format(N_W-1, N_W-1))
+    op += pp("wire [{}:0] noc_row_data [{}:0];".format(BIT_LEN-1, N-1))
+    op += pp("wire [{}:0] noc_row_addr [{}:0];".format(BUF_DEP-1, N-1))
+    op += pp("wire [{}:0] noc_row_c;".format(N-1))
+    op += pp("wire [{}:0] noc_col_data [{}:0];".format(BIT_LEN-1, N-1))
+    op += pp("wire [{}:0] noc_col_addr [{}:0];".format(BUF_DEP-1, N-1))
+    op += pp("wire [{}:0] noc_col_c;".format(N-1))
+    op += pp("wire [{}:0] noc_in_data [{}:0][{}:0];".format(BIT_LEN-1, N-1, N-1))
+    op += pp("wire [{}:0] noc_out_data [{}:0][{}:0];".format(BIT_LEN-1, N-1, N-1))
+    op += pp("wire noc_out_en [{}:0][{}:0];".format(N-1, N-1))
     op += pp("genvar i, j;")
     op += pp("generate")
     op += pp(f"for (i=0; i<{N}; i=i+1) begin : PE_ARRAY_ROW")
-    op += pp("assign {noc_row_c[i], noc_row_addr[i]} = rd_offset + i;")
+    op += pp("assign {noc_row_c[i], noc_row_addr[i]} = rd_tgt_addr + (rd_offset + i);")
     op += pp("assign noc_row_data[i] = data[noc_row_addr[i]];")
-    op += pp("assign {noc_col_c[i], noc_col_addr[i]} = rd_offset + i;")
+    op += pp("assign {noc_col_c[i], noc_col_addr[i]} = rd_tgt_addr + (rd_offset + i);")
     op += pp("assign noc_col_data[i] = data[noc_col_addr[i]];")
     op += pp( f"for (j=0; j<{N}; j=j+1) begin : PE_ARRAY_COL" )
     pe_mod_name = MODULE_FILE_NAME.split("pe")[0] + "pe"
@@ -206,24 +209,31 @@ def gen_pe_array():
     ## Read Module
     op += pp("//// Output Module ////")
     op += pp("reg [{}:0] out_col;".format( N_W-1 ))
-    op += pp("wire out_col_c;".format( N_W-1 ))
+    op += pp("reg out_col_c;")
     op += pp("reg [{}:0] out_row;".format( N_W-1 ))
-    op += pp("wire out_row_c;".format( N_W-1 ))
+    op += pp("reg out_row_c;")
     op += pp("wire out_row_end;")
     op += pp("wire out_col_end;")
     op += pp("reg out_ready;")
     op += pp("reg out_done;")
     op += pp("wire out_rd_data;")
     op += pp("assign en_out_data = out_ready;")
-    op += pp("assign out_row_end = (out_row == {}'b".format(N_W) + bin(N-1)[2:].zfill(N_W) + "));");
-    op += pp("assign out_col_end = (out_col == {}'b".format(N_W) + bin(N-1)[2:].zfill(N_W) + "));");
+    op += pp("assign out_row_end = (out_row == {}'b".format(N_W) + bin(N-1)[2:].zfill(N_W) + ");");
+    op += pp("assign out_col_end = (out_col == {}'b".format(N_W) + bin(N-1)[2:].zfill(N_W) + ");");
     op += pp("assign out_rd_data = en_out_data & rdy_out_data & ~out_done;")
     op += pp("always @(posedge clk) begin")
     op += pp("out_ready <= sched_done & rstn;")
     op += pp("out_done <= ((out_row_end & out_col_end) | out_done) & rstn;")
-    op += pp("{out_col_c, out_col} <= (out_rd_data ? (out_col_end ? 0 : out_col + 1'b1) : out_col) & {"+f"{BUF_DEP+1}"+"{rstn}};")
-    op += pp("{out_row_c, out_row} <= ((out_rd_data & out_col_end) ? (out_row_end ? 0 : out_row + 1'b1) : out_row) & {"+f"{BUF_DEP+1}"+"{rstn}};")
+    op += pp("{out_col_c, out_col} <= (out_rd_data ? (out_col_end ? " + get_zero(N_W+1) + " : out_col + 1'b1) : out_col) & {"+f"{N_W+1}"+"{rstn}};")
+    op += pp("{out_row_c, out_row} <= ((out_rd_data & out_col_end) ? (out_row_end ? " + get_zero(N_W+1) + " : out_row + 1'b1) : out_row) & {"+f"{N_W+1}"+"{rstn}};")
     op += pp("end")
+    op += pp("generate")
+    op += pp(f"for (i=0; i<{N}; i=i+1) begin : NOC_OUT_ROW")
+    op += pp( f"for (j=0; j<{N}; j=j+1) begin : NOC_OUT_COL" )
+    op += pp("assign noc_out_en[i][j] = out_rd_data & (out_row == i) & (out_col == j);")
+    op += pp( "end" )
+    op += pp("end")
+    op += pp("endgenerate")
     op += pp("assign out_data = noc_out_data[out_row][out_col] & {"+f"{BIT_LEN}"+"{rstn & out_rd_data}};")
     ## Module End ##
     op += "\n"

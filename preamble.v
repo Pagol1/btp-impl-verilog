@@ -1,0 +1,5 @@
+`include "my_defines.vh"
+`include "half_adder.v"
+`include "full_adder.v"
+`include "fxp8s_dadda.v"
+`include "fxp8s_pe.v"

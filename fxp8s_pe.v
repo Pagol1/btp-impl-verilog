@@ -24,19 +24,21 @@ module fxp8s_pe(
 	reg mul_on;
 	reg [7:0] acc;
 	wire [7:0] acc_in;
+	wire buf_in;
+	assign buf_in = en_in & in_row;
 	always @(posedge clk) begin
-		in_buf[0] <= (en_in & in_row) ? in_data : in_buf[0] & {8{rstn}};
-		in_mul_b <= (en_in & ~in_row) ? in_data : in_mul_b & {8{rstn}};
+		in_buf[0] <= (buf_in ? in_data : (mul_on ? 8'b00000000 : in_buf[0]) ) & {8{rstn}};
+		in_mul_b <= ((en_in & ~in_row) ? in_data : 8'b00000000) & {8{rstn}};
 		mul_on <= ~in_row & en_in & rstn;
 	end
 	generate
 		for (i=1; i<3; i=i+1) begin : IN_BUF
 			always @(posedge clk) begin
-				in_buf[i] <= (en_in & in_row) ? in_buf[i-1] : in_buf[i] & {8{rstn}};
+				in_buf[i] <= ((buf_in | mul_on) ? in_buf[i-1] : in_buf[i]) & {8{rstn}};
 			end
 		end
 	endgenerate
-	assign in_mul_a = in_buf[2] &{8{mul_on}};
+	assign in_mul_a = in_buf[2] & {8{mul_on}};
 	// Convert 2C -> SM
 	wire [7:0] mul_a;
 	wire [7:0] mul_b;

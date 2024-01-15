@@ -78,11 +78,11 @@ module fxp8s_pe_array(
 	wire [4:0] rd_tgt_addr;
 	reg rd_off_c;
 	assign rd_mat_done = (rd_offset == 5'b00110);
-	assign rd_tgt_addr = sched_col ? base_reg_A : base_reg_B;
+	assign rd_tgt_addr = sched_col ? base_reg_B : base_reg_A;
 	always @(posedge clk) begin
 		sched_col <= rstn & (rd_mat_done & input_done | sched_col);
-		{rd_off_c, rd_offset} <= (sched_done ? {1'b0, rd_offset} : rd_offset + 5'b00011) & {6{rstn}};
-		sched_done <= rd_mat_done & sched_col & rstn;
+		{rd_off_c, rd_offset} <= (sched_done ? {1'b0, rd_offset} : ( rd_mat_done ? 6'b000000 : rd_offset + 6'b000011) ) & {6{rstn & input_done}};
+		sched_done <= (sched_done | (rd_mat_done & sched_col)) & rstn;
 	end
 	wire [7:0] noc_row_data [2:0];
 	wire [17:0] noc_row_addr [2:0];
@@ -102,7 +102,7 @@ module fxp8s_pe_array(
 			assign noc_col_data[i] = data[noc_col_addr[i]];
 			for (j=0; j<3; j=j+1) begin : PE_ARRAY_COL
 				assign noc_in_data[i][j] = sched_col ? noc_col_data[j] : noc_row_data[i];
-				fxp8s_pe PE(clk, rstn, sched_col, ~sched_done & input_done, noc_in_data[i][j], noc_out_en[i][j], noc_out_data[i][j]);
+				fxp8s_pe PE(clk, rstn, ~sched_col, ~sched_done & input_done, noc_in_data[i][j], noc_out_en[i][j], noc_out_data[i][j]);
 			end
 		end
 	endgenerate

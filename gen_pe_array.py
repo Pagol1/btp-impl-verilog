@@ -31,6 +31,7 @@ def pp(msg):
     assert(INDENT >= 0)
     return op
 
+# TODO: Optimize for no offset case
 def get_offset(N, row, col, o_w, i_w):
     ### {_, 0, 0} + {_, 0} + _ + _'
     ret = ""
@@ -175,11 +176,11 @@ def gen_pe_array():
     op += pp("reg rd_off_c;")
     # ROW_DONE ==> Switch next cycle
     op += pp("assign rd_mat_done = (rd_offset == {}'b".format(BUF_DEP_W) + bin(N*N-N)[2:].zfill(BUF_DEP_W) + ");")
-    op += pp("assign rd_tgt_addr = sched_col ? base_reg_A : base_reg_B;")
+    op += pp("assign rd_tgt_addr = sched_col ? base_reg_B : base_reg_A;")
     op += pp("always @(posedge clk) begin")
     op += pp( "sched_col <= rstn & (rd_mat_done & input_done | sched_col);" )
-    op += pp( "{rd_off_c, rd_offset} <= (sched_done ? {1'b0, rd_offset} : rd_offset" + " + {}'b".format(BUF_DEP_W) + bin(N)[2:].zfill(BUF_DEP_W) + ") & {"+f"{BUF_DEP_W+1}"+"{rstn}};" )
-    op += pp( "sched_done <= rd_mat_done & sched_col & rstn;" )
+    op += pp( "{rd_off_c, rd_offset} <= (sched_done ? {1'b0, rd_offset} : ( rd_mat_done ? " + get_zero(BUF_DEP_W+1) + " : rd_offset" + " + {}'b".format(BUF_DEP_W+1) + bin(N)[2:].zfill(BUF_DEP_W+1) + ") ) & {"+f"{BUF_DEP_W+1}"+"{rstn & input_done}};" )
+    op += pp( "sched_done <= (sched_done | (rd_mat_done & sched_col)) & rstn;" )
     op += pp("end")
     # A is row major | B is column major #
     ### PE NoC
@@ -202,7 +203,7 @@ def gen_pe_array():
     op += pp( f"for (j=0; j<{N}; j=j+1) begin : PE_ARRAY_COL" )
     pe_mod_name = MODULE_FILE_NAME.split("pe")[0] + "pe"
     op += pp("assign noc_in_data[i][j] = sched_col ? noc_col_data[j] : noc_row_data[i];")
-    op += pp(pe_mod_name + " PE(clk, rstn, sched_col, ~sched_done & input_done, noc_in_data[i][j], noc_out_en[i][j], noc_out_data[i][j]);")
+    op += pp(pe_mod_name + " PE(clk, rstn, ~sched_col, ~sched_done & input_done, noc_in_data[i][j], noc_out_en[i][j], noc_out_data[i][j]);")
     op += pp( "end" )
     op += pp("end")
     op += pp("endgenerate")

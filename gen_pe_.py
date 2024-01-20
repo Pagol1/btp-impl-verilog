@@ -79,37 +79,41 @@ def gen_pe():
     INDENT += 1
     op += pp("input clk,")
     op += pp("input rstn,")
+    op += pp("input in_row,\t\t// Input is the row ==> Store in Buffer, else send to MUL_B")
     op += pp("input en_in,")
-    op += pp("input in_buf,\t\t// Send input to buffer")
     op += pp("input [" + ADDR + "] in_data,\t\t// 2's complement")
-    op += pp("input in_done,")
-    op += pp("output en_out,")
-    op += pp("input rdy_out,")
+    op += pp("input en_out,")
     op += pp("output [" + ADDR + "] out_data\t\t// 2's complement")
     INDENT -= 1
     op += pp (");"); INDENT += 1
     op += pp("")
     #### Module Core ####
     op += pp("genvar i;")
-    op += pp("reg [{}:0] buf;".format(BIT_LEN-1))
+    op += pp("reg [{}:0] in_buf[{}:0];".format(BIT_LEN-1, N-1))
     op += pp("wire [{}:0] in_mul_a;".format(BIT_LEN-1))
-    op += pp("wire [{}:0] in_mul_b;".format(BIT_LEN-1))
+    op += pp("reg [{}:0] in_mul_b;".format(BIT_LEN-1))
     op += pp("wire [{}:0] out_mul_s;".format(BIT_LEN-1))
     op += pp("wire out_mul_ovf;")
-    op += pp("reg comp_done;")
-    op += pp("wire mul_on;")
+    op += pp("reg mul_on;")
     op += pp("reg [{}:0] acc;".format(BIT_LEN-1))
     op += pp("wire [{}:0] acc_in;".format(BIT_LEN-1))
     op += pp("wire buf_in;")
-    op += pp("assign buf_in = en_in & in_buf;")
-    op += pp("assign mul_on = en_in & ~in_buf;")
+    op += pp("assign buf_in = en_in & in_row;")
     ## Buffer Stage
     op += pp("always @(posedge clk) begin")
-    op += pp(f"buf <= (buf_in ? in_data : buf) & "+" {"+f"{BIT_LEN}"+"{rstn}};") ## (mul_on ? {BIT_LEN}'b{BIT_LEN*'0'} : buf) ) &"+" {"+f"{BIT_LEN}"+"{rstn}};")
-    # op += pp(f"in_mul_b <= ((en_in & ~in_row) ? in_data : {BIT_LEN}'b{BIT_LEN*'0'}) &"+" {"+f"{BIT_LEN}"+"{rstn}};")
+    op += pp(f"in_buf[0] <= (buf_in ? in_data : (mul_on ? {BIT_LEN}'b{BIT_LEN*'0'} : in_buf[0]) ) &"+" {"+f"{BIT_LEN}"+"{rstn}};")
+    op += pp(f"in_mul_b <= ((en_in & ~in_row) ? in_data : {BIT_LEN}'b{BIT_LEN*'0'}) &"+" {"+f"{BIT_LEN}"+"{rstn}};")
+    op += pp("mul_on <= ~in_row & en_in & rstn;")
     op += pp("end")
-    op += pp("assign in_mul_a = buf & " + "{" + f"{BIT_LEN}" + "{mul_on}};")
-    op += pp("assign in_mul_b = in_data & " + "{" + f"{BIT_LEN}" + "{mul_on}};")
+    ## Buffer Internals
+    op += pp("generate")
+    op += pp( "for (i=1; i<{}; i=i+1) begin : IN_BUF".format(N) )
+    op += pp("always @(posedge clk) begin")
+    op += pp("in_buf[i] <= ((buf_in | mul_on) ? in_buf[i-1] : in_buf[i]) & {"+f"{BIT_LEN}"+"{rstn}};")
+    op += pp("end")
+    op += pp( "end" )
+    op += pp("endgenerate")
+    op += pp("assign in_mul_a = in_buf[{}] & ".format(N-1) + "{" + f"{BIT_LEN}" + "{mul_on}};")
     ## 2's C to SM
     op += pp("// Convert 2C -> SM")
     op += pp("wire [{}:0] mul_a;".format(BIT_LEN-1))
@@ -127,11 +131,9 @@ def gen_pe():
     op += pp("assign {acc_cout, acc_in} = acc + out_mul_s;")
     op += pp("always @(posedge clk) begin")
     op += pp("acc <= acc_in & {" + str(BIT_LEN) + "{rstn}};")
-    op += pp("comp_done <= (comp_done | (mul_on & in_done)) & rstn & ~(en_out & rdy_out);")
     op += pp("end")
     ## Drive output
-    op += pp("assign en_out = comp_done;")
-    op += pp("assign out_data =  acc & {" + str(BIT_LEN) + "{en_out & rdy_out}};")
+    op += pp("assign out_data =  acc & {" + str(BIT_LEN) + "{en_out}};")
     ## Module End ##
     op += "\n"
     INDENT -= 1

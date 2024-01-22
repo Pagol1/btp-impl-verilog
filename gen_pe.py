@@ -91,7 +91,7 @@ def gen_pe():
     op += pp("")
     #### Module Core ####
     op += pp("genvar i;")
-    op += pp("reg [{}:0] buf;".format(BIT_LEN-1))
+    op += pp("reg [{}:0] buffer;".format(BIT_LEN-1))
     op += pp("wire [{}:0] in_mul_a;".format(BIT_LEN-1))
     op += pp("wire [{}:0] in_mul_b;".format(BIT_LEN-1))
     op += pp("wire [{}:0] out_mul_s;".format(BIT_LEN-1))
@@ -105,10 +105,10 @@ def gen_pe():
     op += pp("assign mul_on = en_in & ~in_buf;")
     ## Buffer Stage
     op += pp("always @(posedge clk) begin")
-    op += pp(f"buf <= (buf_in ? in_data : buf) & "+" {"+f"{BIT_LEN}"+"{rstn}};") ## (mul_on ? {BIT_LEN}'b{BIT_LEN*'0'} : buf) ) &"+" {"+f"{BIT_LEN}"+"{rstn}};")
+    op += pp(f"buffer <= (buf_in ? in_data : buffer) & "+" {"+f"{BIT_LEN}"+"{rstn}};") ## (mul_on ? {BIT_LEN}'b{BIT_LEN*'0'} : buf) ) &"+" {"+f"{BIT_LEN}"+"{rstn}};")
     # op += pp(f"in_mul_b <= ((en_in & ~in_row) ? in_data : {BIT_LEN}'b{BIT_LEN*'0'}) &"+" {"+f"{BIT_LEN}"+"{rstn}};")
     op += pp("end")
-    op += pp("assign in_mul_a = buf & " + "{" + f"{BIT_LEN}" + "{mul_on}};")
+    op += pp("assign in_mul_a = buffer & " + "{" + f"{BIT_LEN}" + "{mul_on}};")
     op += pp("assign in_mul_b = in_data & " + "{" + f"{BIT_LEN}" + "{mul_on}};")
     ## 2's C to SM
     op += pp("// Convert 2C -> SM")

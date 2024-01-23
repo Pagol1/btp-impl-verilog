@@ -93,6 +93,7 @@ def gen_pe_array():
     op += pp("output rdy_in_data,")              # Data accepted
     op += pp("input in_mat,")                   # A == 0 | B == 1
     op += pp("input in_mat_done,")
+    op += pp("input mat_cast_done,")
     op += pp("input [" + BUS_W + "] in_data,")
     op += pp("// Output Stream")
     op += pp("output en_out_data,")
@@ -105,6 +106,7 @@ def gen_pe_array():
     ### Load Data from Input Lines
     op += pp("// States //")
     op += pp("wire out_done;")
+    op += pp("reg op_rstn;")
     op += pp("//// Input Data Loader ////")
     N_W = math.ceil(math.log2(N))
     BUF_DEP = 2*N
@@ -131,6 +133,7 @@ def gen_pe_array():
     op += pp("wire zero_pad;")
     op += pp("reg zero_pad_d;")     # Use this to read zeros into memory
     op += pp("wire in_mat_empty;")
+    op += pp("reg cast_done;")
     op += pp("// buffer wr decl")
     op += pp("wire [{}:0] wr_addr [{}:0];".format( BUF_DEP_W-1, N-1 ))
     op += pp("wire [{}:0] wr_bank_addr [{}:0];".format( N_W-1, N-1 ))
@@ -153,9 +156,10 @@ def gen_pe_array():
     op += pp("assign rdy_in_data = en_in_data & ~zero_pad & in_mat_empty;")
     op += pp("assign wr_en = en_in_data & (rdy_in_data | zero_pad);")
     op += pp("always @(posedge clk) begin")
-    op += pp( "{in_row_c[0], in_row[0]} <= ((wr_en & ~in_mat) ? ((in_row_end) ? " + get_zero(N_W+1) + " : in_row[0] + 1'b1) : {1'b0, in_row[0]}) & {"+f"{N_W+1}"+"{rstn}};" )
-    op += pp( "{in_row_c[1], in_row[1]} <= ((wr_en & in_mat) ? ((in_row_end) ? " + get_zero(N_W+1) + " : in_row[1] + 1'b1) : {1'b0, in_row[1]}) & {"+f"{N_W+1}"+"{rstn}};" )
-    op += pp( "zero_pad_d <= zero_pad & rstn;" )
+    op += pp( "{in_row_c[0], in_row[0]} <= ((wr_en & ~in_mat) ? ((in_row_end) ? " + get_zero(N_W+1) + " : in_row[0] + 1'b1) : {1'b0, in_row[0]}) & {"+f"{N_W+1}"+"{rstn & op_rstn}};" )
+    op += pp( "{in_row_c[1], in_row[1]} <= ((wr_en & in_mat) ? ((in_row_end) ? " + get_zero(N_W+1) + " : in_row[1] + 1'b1) : {1'b0, in_row[1]}) & {"+f"{N_W+1}"+"{rstn & op_rstn}};" )
+    op += pp( "zero_pad_d <= zero_pad & rstn & op_rstn;" )
+    op += pp( "cast_done <= rstn & mat_cast_done & in_row_end & op_rstn;" )
     op += pp("end")
     ## Buffer Definitions WR i/p
     op += pp("// buffer wr def")
@@ -167,23 +171,21 @@ def gen_pe_array():
     op += pp( "assign wr_data[i] = in_data[{0}*i+{1}:{0}*i]".format(BIT_LEN, BIT_LEN-1)+" & {"+f"{BIT_LEN}"+"{~zero_pad_d}};" )
     op += pp( "always @(posedge clk) begin" )
     op += pp(  "buf_data[wr_bank_addr[i]][wr_addr[i]] <= wr_en ? wr_data[i] : buf_data[wr_bank_addr[i]][wr_addr[i]];"  )
-    ### NOTE: Simultaneous reading and scheduling is done ==> Need to make scheduler send out only 2N rows though
     op += pp( "end" )
     op += pp("end")
     op += pp("endgenerate")
-    ### TODO: Add valid signal wala logic
     op += pp("generate")
     op += pp(f"for (i=0; i<{N}; i=i+1) begin : VALID_COL")
     # Matrix A
     op += pp(f"for (j=0; j<{N}; j=j+1) begin : VALID_ROW_A")
     op += pp( "always @(posedge clk) begin" )
-    op += pp(f"buf_valid[i][j+{BASE_A}] <= rstn & ((sched_en & ~sched_tgt & (sched_row == j)) ? 1'b0 : ( (wr_en & ~in_mat & (in_row[0] == i)) ? 1'b1 : buf_valid[i][j+{BASE_A}] ) );")
+    op += pp(f"buf_valid[i][j+{BASE_A}] <= rstn & ((sched_en & ~sched_tgt & (sched_row == j)) ? 1'b0 : ( (wr_en & ~in_mat & (in_row[0] == i) & ~cast_done) ? 1'b1 : buf_valid[i][j+{BASE_A}] ) ) & op_rstn;")
     op += pp( "end" )
     op += pp("end")
     # Matrix B
     op += pp(f"for (j=0; j<{N}; j=j+1) begin : VALID_ROW_B")
     op += pp( "always @(posedge clk) begin" )
-    op += pp(f"buf_valid[i][j+{BASE_B}] <= rstn & ((sched_en & sched_tgt & (sched_row == j)) ? 1'b0 : ( (wr_en & in_mat & (in_row[1] == j)) ? 1'b1 : buf_valid[i][j+{BASE_B}] ) );")
+    op += pp(f"buf_valid[i][j+{BASE_B}] <= rstn & ((sched_en & sched_tgt & (sched_row == j)) ? 1'b0 : ( (wr_en & in_mat & (in_row[1] == j) & ~cast_done) ? 1'b1 : buf_valid[i][j+{BASE_B}] ) ) & op_rstn;")
     op += pp( "end" )
     op += pp("end")
     op += pp("end")
@@ -211,12 +213,12 @@ def gen_pe_array():
     op += pp("assign last_row = (sched_row == {}'b".format(N_W) + bin(N-1)[2:].zfill(N_W) + ") & (sched_tgt ^ sched_tgt_base);")
     op += pp("assign sched_en = ~sched_done & sched_valid[(sched_tgt ? base_reg_B : base_reg_A) + sched_row] & ~out_mat_ready;")
     op += pp("always @(posedge clk) begin")
-    op += pp("sched_start <= rstn & ~sched_done & (sched_en | sched_start);")
+    op += pp("sched_start <= rstn & ~sched_done & (sched_en | sched_start) & op_rstn;")
     # op += pp("sched_en <= rstn & ~sched_done & sched_valid[(sched_tgt ? base_reg_B : base_reg_A) + sched_row] & ~out_mat_ready;")
-    op += pp("sched_tgt_base <= rstn & (sched_en | sched_start ? sched_tgt_base : ~sched_valid[base_reg_A] & sched_valid[base_reg_B]);")
-    op += pp("sched_tgt <= rstn & (sched_en ? ~sched_tgt : (sched_start ? sched_tgt : ~sched_valid[base_reg_A] & sched_valid[base_reg_B]) );")
-    op += pp("sched_done <= rstn & (sched_done ? ~out_row_end : last_row);")
-    op += pp("{sched_row_c, sched_row} <= (sched_done ? " + get_zero(N_W+1) + " : (sched_en ? sched_row + (sched_tgt ^ sched_tgt_base) : sched_row)) & {"+f"{N_W+1}"+"{rstn}};") 
+    op += pp("sched_tgt_base <= rstn & (sched_en | sched_start ? sched_tgt_base : ~sched_valid[base_reg_A] & sched_valid[base_reg_B]) & op_rstn;")
+    op += pp("sched_tgt <= rstn & (sched_en ? ~sched_tgt : (sched_start ? sched_tgt : ~sched_valid[base_reg_A] & sched_valid[base_reg_B]) ) & op_rstn;")
+    op += pp("sched_done <= rstn & (sched_done ? ~out_row_end : last_row) & op_rstn;")
+    op += pp("{sched_row_c, sched_row} <= (sched_done ? " + get_zero(N_W+1) + " : (sched_en ? sched_row + (sched_tgt ^ sched_tgt_base) : sched_row)) & {"+f"{N_W+1}"+"{rstn & op_rstn}};") 
     op += pp("end")
     # A is row major | B is column major #
     ### PE NoC
@@ -239,7 +241,7 @@ def gen_pe_array():
     op += pp( f"for (j=0; j<{N}; j=j+1) begin : PE_ARRAY_COL" )
     pe_mod_name = MODULE_FILE_NAME.split("pe")[0] + "pe"
     op += pp("assign noc_in_data[i][j] = sched_tgt ? noc_col_data[j] : noc_row_data[i];")
-    op += pp(pe_mod_name + " PE(clk, rstn, sched_en, ~(sched_tgt ^ sched_tgt_base), noc_in_data[i][j], last_row, noc_out_en[i][j], noc_out_rdy[i][j], noc_out_data[i][j]);")
+    op += pp(pe_mod_name + " PE(clk, rstn, sched_en, ~(sched_tgt ^ sched_tgt_base), cast_done, noc_in_data[i][j], last_row, noc_out_en[i][j], noc_out_rdy[i][j], noc_out_data[i][j]);")
     op += pp( "end" )
     op += pp("end")
     op += pp("endgenerate")
@@ -261,7 +263,8 @@ def gen_pe_array():
     op += pp("assign out_mat_done = out_row_end;")
     op += pp("assign out_en = en_out_data & rdy_out_data;")
     op += pp("always @(posedge clk) begin")
-    op += pp("{out_row_c, out_row} <= (out_row_end & out_en ? " + get_zero(N_W+1) + " : (out_mat_ready & out_en ? out_row + 1'b1 : {1'b0, out_row})) & {"+f"{N_W+1}"+"{rstn}};")
+    op += pp("{out_row_c, out_row} <= (out_row_end & out_en ? " + get_zero(N_W+1) + " : (out_mat_ready & out_en ? out_row + 1'b1 : {1'b0, out_row})) & {"+f"{N_W+1}"+"{rstn & op_rstn}};")
+    op += pp("op_rstn <= ~(out_row_end & out_en);")
     op += pp("end")
     out_col_data = "("
     for j in range(N):

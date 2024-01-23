@@ -83,6 +83,7 @@ def gen_pe():
     op += pp("input in_buf,\t\t// Send input to buffer")
     op += pp("input [" + ADDR + "] in_data,\t\t// 2's complement")
     op += pp("input in_done,")
+    op += pp("input acc_end,")                     # From global scheduler ==> Indicates that ACC is done
     op += pp("output en_out,")
     op += pp("input rdy_out,")
     op += pp("output [" + ADDR + "] out_data\t\t// 2's complement")
@@ -96,7 +97,7 @@ def gen_pe():
     op += pp("wire [{}:0] in_mul_b;".format(BIT_LEN-1))
     op += pp("wire [{}:0] out_mul_s;".format(BIT_LEN-1))
     op += pp("wire out_mul_ovf;")
-    op += pp("reg comp_done;")
+    op += pp("reg acc_done;")
     op += pp("wire mul_on;")
     op += pp("reg [{}:0] acc;".format(BIT_LEN-1))
     op += pp("wire [{}:0] acc_in;".format(BIT_LEN-1))
@@ -127,10 +128,10 @@ def gen_pe():
     op += pp("assign {acc_cout, acc_in} = acc + out_mul_s;")
     op += pp("always @(posedge clk) begin")
     op += pp("acc <= acc_in & {" + str(BIT_LEN) + "{rstn}};")
-    op += pp("comp_done <= (comp_done | (mul_on & in_done)) & rstn & ~(en_out & rdy_out);")
+    op += pp("acc_done <= (acc_done | (mul_on & in_done & acc_end)) & rstn & ~(en_out & rdy_out);")
     op += pp("end")
     ## Drive output
-    op += pp("assign en_out = comp_done;")
+    op += pp("assign en_out = acc_done;")
     op += pp("assign out_data =  acc & {" + str(BIT_LEN) + "{en_out & rdy_out}};")
     ## Module End ##
     op += "\n"

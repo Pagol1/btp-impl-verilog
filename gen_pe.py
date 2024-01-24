@@ -45,9 +45,10 @@ def gen_2c_to_sm(name, w_in, w_out):
 def gen_sm_to_2c(name, w_in, w_out):
     global BIT_LEN
     op = ""
-    op += pp("assign {}[{}:0] = {}[{}:0] ^ ".format(w_out, BIT_LEN-2, w_in, BIT_LEN-2) + 
-            "{" + str(BIT_LEN-1) + "{" + w_in + f"[{BIT_LEN-1}]" + "}};")
-    op += pp(f"assign {w_out}[{BIT_LEN-1}] = {w_in}[{BIT_LEN-1}];")
+    op += pp("assign {0}[{1}:0] = (en_max_mode & en_in ? in_data[{1}:0] : {2}[{1}:0]) ^ "
+            .format(w_out, BIT_LEN-2, w_in) + 
+            "{" + str(BIT_LEN-1) + "{" + w_in + f"[{BIT_LEN-1}]" + "| (en_max_mode & en_in)}};")
+    op += pp(f"assign {w_out}[{BIT_LEN-1}] = en_max_mode & en_in ? ~in_data[{BIT_LEN-1}] : {w_in}[{BIT_LEN-1}];")
     return op
 
 def gen_pe():
@@ -79,6 +80,7 @@ def gen_pe():
     INDENT += 1
     op += pp("input clk,")
     op += pp("input rstn,")
+    op += pp("input en_max_mode,")
     op += pp("input en_in,")
     op += pp("input in_buf,\t\t// Send input to buffer")
     op += pp("input [" + ADDR + "] in_data,\t\t// 2's complement")
@@ -101,6 +103,7 @@ def gen_pe():
     op += pp("wire mul_on;")
     op += pp("reg [{}:0] acc;".format(BIT_LEN-1))
     op += pp("wire [{}:0] acc_in;".format(BIT_LEN-1))
+    op += pp("wire [{}:0] acc_max;".format(BIT_LEN-1))
     op += pp("wire buf_in;")
     op += pp("assign buf_in = en_in & in_buf;")
     op += pp("assign mul_on = en_in & ~in_buf;")
@@ -125,9 +128,10 @@ def gen_pe():
     ## ACC
     op += pp("// Accumulator")
     op += pp("wire acc_cout;")
-    op += pp("assign {acc_cout, acc_in} = acc + out_mul_s;")
+    op += pp("assign {acc_cout, acc_in} = acc + out_mul_s + (en_max_mode & en_in);")
+    op += pp(f"assign acc_max = acc_in[{BIT_LEN-1}] ? in_data : acc;")
     op += pp("always @(posedge clk) begin")
-    op += pp("acc <= acc_in & {" + str(BIT_LEN) + "{rstn}};")
+    op += pp("acc <= ((en_max_mode & en_in) ? acc_max : acc_in) & {" + str(BIT_LEN) + "{rstn}};")
     op += pp("acc_done <= (acc_done | (mul_on & in_done & acc_end)) & rstn & ~(en_out & rdy_out);")
     op += pp("end")
     ## Drive output

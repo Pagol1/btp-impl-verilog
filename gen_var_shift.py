@@ -29,6 +29,9 @@ def pp(msg):
     assert(INDENT >= 0)
     return op
 
+def get_mc(N, sig):
+    return "{" + str(N) + "{" + sig + "}}"
+
 def gen_var_shifter():
     global BIT_LEN
     global INDENT
@@ -68,7 +71,7 @@ def gen_var_shifter():
     op += pp("wire shift_sign;")                    # Left shift if 0 else right
     op += pp(f"wire [{SHFT_W-1}:0] shift_val;")
     op += pp(f"assign shift_sign = in_shift[{BIT_LEN-1}];")
-    op += pp("assign sat_val = in_shift + shift_sign;")
+    op += pp("assign sat_val = (in_shift ^ "+get_mc(BIT_LEN, "shift_sign")+") + shift_sign;")
     # Saturate ==> Make output bits 0
     op += pp(f"assign saturate = ~|sat_val[{BIT_LEN-1}:{SHFT_W}];")
     op += pp("assign shift_val = sat_val;")
@@ -78,10 +81,10 @@ def gen_var_shifter():
     for i in range(1, SHFT_W+1):
         shft_val = int(math.pow(2, i-1))
         op += pp(f"assign stage_val[{i}] = shift_val[{i-1}] ? (shift_sign ? " + 
-                "{" + str(shft_val) +"{in_data["+str(BIT_LEN-1)+"]}, " + 
-                f"stage_val[{i-1}][{BIT_LEN-1}:{shft_val}]" + "} : {" +  
-                f"stage_val[{i-1}][{shft_val-1}:0], " 
-                ", " + str(shft_val) +"{1'b0}}) : " + f"stage_val[{i-1}];")
+                "{{" + str(shft_val) +"{in_data["+str(BIT_LEN-1)+"]}}, " +          
+                f"stage_val[{i-1}][{BIT_LEN-1}:{shft_val}]" + "} : { " +
+                f"stage_val[{i-1}][{BIT_LEN-1-shft_val}:0], " 
+                "{" + str(shft_val) +"{1'b0}} }) : " + f"stage_val[{i-1}];")
     op += pp(f"assign out_data[{BIT_LEN-1}] = in_data[{BIT_LEN-1}] & saturate;")
     op += pp(f"assign out_data[{BIT_LEN-2}:0] = stage_val[{SHFT_W}][{BIT_LEN-2}:0] & " + 
             "{" + f"{BIT_LEN-1}" + "{saturate}}"+";")

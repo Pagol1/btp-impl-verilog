@@ -11,17 +11,15 @@ module fxp64s_var_shifter(
 	// Input Stream
 	input [`FXP64S_ADDR] in_data,
 	input [`FXP64S_ADDR] in_shift,
+	input shift_sign, // 0: LS | 1: RS
 	// Output Stream
 	output [`FXP64S_ADDR] out_data
 );
 	wire [63:0] sat_val;
 	wire saturate;
-	wire shift_sign;
 	wire [5:0] shift_val;
-	assign shift_sign = in_shift[63];
-	assign sat_val = (in_shift ^ {64{shift_sign}}) + shift_sign;
-	assign saturate = ~|sat_val[63:6];
-	assign shift_val = sat_val;
+	assign saturate = ~|in_shift[63:6];
+	assign shift_val = in_shift[5:0];
 	// Stages
 	wire [63:0] stage_val [6:0];
 	assign stage_val[0] = in_data;

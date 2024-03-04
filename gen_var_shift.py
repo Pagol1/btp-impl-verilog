@@ -60,6 +60,7 @@ def gen_var_shifter():
     op += pp("// Input Stream")
     op += pp("input [" + ADDR + "] in_data,")
     op += pp("input [" + ADDR + "] in_shift,")
+    op += pp("input shift_sign, // 0: LS | 1: RS")
     op += pp("// Output Stream")
     op += pp("output [" + ADDR + "] out_data")
     INDENT -= 1
@@ -68,13 +69,13 @@ def gen_var_shifter():
     ## Module Start ##
     op += pp(f"wire [{BIT_LEN-1}:0] sat_val;")
     op += pp(f"wire saturate;")
-    op += pp("wire shift_sign;")                    # Left shift if 0 else right
+    # op += pp("wire shift_sign;")                    # Left shift if 0 else right
     op += pp(f"wire [{SHFT_W-1}:0] shift_val;")
-    op += pp(f"assign shift_sign = in_shift[{BIT_LEN-1}];")
-    op += pp("assign sat_val = (in_shift ^ "+get_mc(BIT_LEN, "shift_sign")+") + shift_sign;")
+    # op += pp(f"assign shift_sign = in_shift[{BIT_LEN-1}];")
+    # op += pp("assign sat_val = (in_shift ^ "+get_mc(BIT_LEN, "shift_sign")+") + shift_sign;")
     # Saturate ==> Make output bits 0
-    op += pp(f"assign saturate = ~|sat_val[{BIT_LEN-1}:{SHFT_W}];")
-    op += pp("assign shift_val = sat_val;")
+    op += pp(f"assign saturate = ~|in_shift[{BIT_LEN-1}:{SHFT_W}];")
+    op += pp(f"assign shift_val = in_shift[{SHFT_W-1}:0];")
     op += pp("// Stages")
     op += pp(f"wire [{BIT_LEN-1}:0] stage_val [{SHFT_W}:0];")
     op += pp("assign stage_val[0] = in_data;")

@@ -1,11 +1,11 @@
 # Common Config Settings
-BIT_LEN = 32
+BIT_LEN = 64 # 32
 IO_PRE = "`FXP{}S_".format(BIT_LEN)
-LSB_POW = -24
+LSB_POW = -48 # -24
 ## PE
 PE_ARRAY_DIM = 2
 ## EXP - POW 2
-NUM_STAGE = 4
+NUM_STAGE = 8
 NUM_PASS = int(BIT_LEN/NUM_STAGE)-1
 BIT_LEN_COMP = 9
 GUARD_BIT = 0

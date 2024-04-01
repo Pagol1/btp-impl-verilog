@@ -100,6 +100,9 @@ module fxp32s_exp(
 	wire [8:0] st0_ms_n;
 	wire [8:0] st0_ms_d;
 	wire [8:0] st0_ms_b;
+	wire [8:0] st0_ms_s;
+	wire [8:0] st0_ms_bo;
+	wire [8:0] st0_ms_qo;
 	assign st0_ms_n[0] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? x[3] : x[7] ) : ( cntr[0] ? x[11] : x[15] ) ) : ( cntr[1] ? ( cntr[0] ? x[19] : x[23] ) : ( cntr[0] ? x[27] : x[31] ) ) );
 	assign st0_ms_n[1] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? x[4] : x[8] ) : ( cntr[0] ? x[12] : x[16] ) ) : ( cntr[1] ? ( cntr[0] ? x[20] : x[24] ) : ( cntr[0] ? x[28] : x[32] ) ) );
 	assign st0_ms_n[2] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? x[5] : x[9] ) : ( cntr[0] ? x[13] : x[17] ) ) : ( cntr[1] ? ( cntr[0] ? x[21] : x[25] ) : ( cntr[0] ? x[29] : x[33] ) ) );
@@ -118,24 +121,23 @@ module fxp32s_exp(
 	assign st0_ms_d[6] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? log_rom0[cntr][9] : log_rom0[cntr][13] ) : ( cntr[0] ? log_rom0[cntr][17] : log_rom0[cntr][21] ) ) : ( cntr[1] ? ( cntr[0] ? log_rom0[cntr][25] : log_rom0[cntr][29] ) : ( cntr[0] ? log_rom0[cntr][33] : log_rom0[cntr][37] ) ) );
 	assign st0_ms_d[7] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? log_rom0[cntr][10] : log_rom0[cntr][14] ) : ( cntr[0] ? log_rom0[cntr][18] : log_rom0[cntr][22] ) ) : ( cntr[1] ? ( cntr[0] ? log_rom0[cntr][26] : log_rom0[cntr][30] ) : ( cntr[0] ? log_rom0[cntr][34] : log_rom0[cntr][38] ) ) );
 	assign st0_ms_d[8] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? log_rom0[cntr][11] : log_rom0[cntr][15] ) : ( cntr[0] ? log_rom0[cntr][19] : log_rom0[cntr][23] ) ) : ( cntr[1] ? ( cntr[0] ? log_rom0[cntr][27] : log_rom0[cntr][31] ) : ( cntr[0] ? log_rom0[cntr][35] : log_rom0[cntr][39] ) ) );
-	comp_sub_b RS_0_0(st0_ms_n[0], st0_ms_d[0], 1'b0, st0_ms_b[0]);
+	restoring_subtractor RS_0_0(st0_ms_n[0], st0_ms_d[0], 1'b0, st0_ms_qo[1], st0_ms_s[0], st0_ms_b[0], st0_ms_qo[0]);
 	generate
 		for (i=1; i<8; i=i+1) begin : LOW_PREC_ST_0
-			comp_sub_b RS_0_i(st0_ms_n[i], st0_ms_d[i], st0_ms_b[i-1], st0_ms_b[i]);
+			restoring_subtractor RS_0_i(st0_ms_n[i], st0_ms_d[i], st0_ms_b[i-1], st0_ms_qo[i+1], st0_ms_s[i], st0_ms_b[i], st0_ms_qo[i]);
 		end
 	endgenerate
-	comp_sub_b RS_0_8(st0_ms_n[8], st0_ms_d[8], st0_ms_b[7], st0_ms_sn);
+	restoring_subtractor RS_0_8(st0_ms_n[8], st0_ms_d[8], st0_ms_b[7], st0_s, st0_ms_s[8], st0_ms_sn, st0_ms_qo[8]);
 	assign st0_s = ~st0_ms_sn;
 	// Slave : X_Long
 	wire [39:0] st0_sx_d;
 	wire [39:0] st0_sx_s;
+	wire [40:0] st0_sx_b;
 	wire [39:0] st0_sx_bo;
 	assign st0_sx_d = log_rom0[cntr];
-	wire [39:0] st0_sx_test;
 	generate
 		for (i=0; i<40; i=i+1) begin : HIGH_PREC_ST_0
-			assign st0_sx_test[i] = x[i];
-			full_subtractor FS_0_sx(st0_sx_test[i], st0_sx_d[i] & st0_s, 1'b0, st0_sx_s[i], st0_sx_bo[i]);
+			full_subtractor FS_0_sx(x[i], st0_sx_d[i] & st0_s, 1'b0, st0_sx_s[i], st0_sx_bo[i]);
 		end
 	endgenerate
 	// Slave : Y_Long
@@ -159,16 +161,11 @@ module fxp32s_exp(
 	wire [9:0] st1_ms_n;
 	wire [9:0] st1_ms_d;
 	wire [9:0] st1_ms_b;
-	assign st1_ms_n[0] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st0_sx_s[2] : st0_sx_s[6] ) : ( cntr[0] ? st0_sx_s[10] : st0_sx_s[14] ) ) : ( cntr[1] ? ( cntr[0] ? st0_sx_s[18] : st0_sx_s[22] ) : ( cntr[0] ? st0_sx_s[26] : st0_sx_s[30] ) ) );
-	assign st1_ms_n[1] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st0_sx_s[3] : st0_sx_s[7] ) : ( cntr[0] ? st0_sx_s[11] : st0_sx_s[15] ) ) : ( cntr[1] ? ( cntr[0] ? st0_sx_s[19] : st0_sx_s[23] ) : ( cntr[0] ? st0_sx_s[27] : st0_sx_s[31] ) ) );
-	assign st1_ms_n[2] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st0_sx_s[4] : st0_sx_s[8] ) : ( cntr[0] ? st0_sx_s[12] : st0_sx_s[16] ) ) : ( cntr[1] ? ( cntr[0] ? st0_sx_s[20] : st0_sx_s[24] ) : ( cntr[0] ? st0_sx_s[28] : st0_sx_s[32] ) ) );
-	assign st1_ms_n[3] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st0_sx_s[5] : st0_sx_s[9] ) : ( cntr[0] ? st0_sx_s[13] : st0_sx_s[17] ) ) : ( cntr[1] ? ( cntr[0] ? st0_sx_s[21] : st0_sx_s[25] ) : ( cntr[0] ? st0_sx_s[29] : st0_sx_s[33] ) ) );
-	assign st1_ms_n[4] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st0_sx_s[6] : st0_sx_s[10] ) : ( cntr[0] ? st0_sx_s[14] : st0_sx_s[18] ) ) : ( cntr[1] ? ( cntr[0] ? st0_sx_s[22] : st0_sx_s[26] ) : ( cntr[0] ? st0_sx_s[30] : st0_sx_s[34] ) ) );
-	assign st1_ms_n[5] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st0_sx_s[7] : st0_sx_s[11] ) : ( cntr[0] ? st0_sx_s[15] : st0_sx_s[19] ) ) : ( cntr[1] ? ( cntr[0] ? st0_sx_s[23] : st0_sx_s[27] ) : ( cntr[0] ? st0_sx_s[31] : st0_sx_s[35] ) ) );
-	assign st1_ms_n[6] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st0_sx_s[8] : st0_sx_s[12] ) : ( cntr[0] ? st0_sx_s[16] : st0_sx_s[20] ) ) : ( cntr[1] ? ( cntr[0] ? st0_sx_s[24] : st0_sx_s[28] ) : ( cntr[0] ? st0_sx_s[32] : st0_sx_s[36] ) ) );
-	assign st1_ms_n[7] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st0_sx_s[9] : st0_sx_s[13] ) : ( cntr[0] ? st0_sx_s[17] : st0_sx_s[21] ) ) : ( cntr[1] ? ( cntr[0] ? st0_sx_s[25] : st0_sx_s[29] ) : ( cntr[0] ? st0_sx_s[33] : st0_sx_s[37] ) ) );
-	assign st1_ms_n[8] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st0_sx_s[10] : st0_sx_s[14] ) : ( cntr[0] ? st0_sx_s[18] : st0_sx_s[22] ) ) : ( cntr[1] ? ( cntr[0] ? st0_sx_s[26] : st0_sx_s[30] ) : ( cntr[0] ? st0_sx_s[34] : st0_sx_s[38] ) ) );
-	assign st1_ms_n[9] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st0_sx_s[11] : st0_sx_s[15] ) : ( cntr[0] ? st0_sx_s[19] : st0_sx_s[23] ) ) : ( cntr[1] ? ( cntr[0] ? st0_sx_s[27] : st0_sx_s[31] ) : ( cntr[0] ? st0_sx_s[35] : st0_sx_s[39] ) ) );
+	wire [9:0] st1_ms_s;
+	wire [9:0] st1_ms_bo;
+	wire [9:0] st1_ms_qo;
+	assign st1_ms_n[9:1] = st0_ms_s[8:0];
+	assign st1_ms_n[0] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? x[2] : x[6] ) : ( cntr[0] ? x[10] : x[14] ) ) : ( cntr[1] ? ( cntr[0] ? x[18] : x[22] ) : ( cntr[0] ? x[26] : x[30] ) ) );
 	assign st1_ms_d[9] = 1'b0;
 	assign st1_ms_d[0] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? log_rom1[cntr][2] : log_rom1[cntr][6] ) : ( cntr[0] ? log_rom1[cntr][10] : log_rom1[cntr][14] ) ) : ( cntr[1] ? ( cntr[0] ? log_rom1[cntr][18] : log_rom1[cntr][22] ) : ( cntr[0] ? log_rom1[cntr][26] : log_rom1[cntr][30] ) ) );
 	assign st1_ms_d[1] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? log_rom1[cntr][3] : log_rom1[cntr][7] ) : ( cntr[0] ? log_rom1[cntr][11] : log_rom1[cntr][15] ) ) : ( cntr[1] ? ( cntr[0] ? log_rom1[cntr][19] : log_rom1[cntr][23] ) : ( cntr[0] ? log_rom1[cntr][27] : log_rom1[cntr][31] ) ) );
@@ -179,27 +176,26 @@ module fxp32s_exp(
 	assign st1_ms_d[6] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? log_rom1[cntr][8] : log_rom1[cntr][12] ) : ( cntr[0] ? log_rom1[cntr][16] : log_rom1[cntr][20] ) ) : ( cntr[1] ? ( cntr[0] ? log_rom1[cntr][24] : log_rom1[cntr][28] ) : ( cntr[0] ? log_rom1[cntr][32] : log_rom1[cntr][36] ) ) );
 	assign st1_ms_d[7] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? log_rom1[cntr][9] : log_rom1[cntr][13] ) : ( cntr[0] ? log_rom1[cntr][17] : log_rom1[cntr][21] ) ) : ( cntr[1] ? ( cntr[0] ? log_rom1[cntr][25] : log_rom1[cntr][29] ) : ( cntr[0] ? log_rom1[cntr][33] : log_rom1[cntr][37] ) ) );
 	assign st1_ms_d[8] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? log_rom1[cntr][10] : log_rom1[cntr][14] ) : ( cntr[0] ? log_rom1[cntr][18] : log_rom1[cntr][22] ) ) : ( cntr[1] ? ( cntr[0] ? log_rom1[cntr][26] : log_rom1[cntr][30] ) : ( cntr[0] ? log_rom1[cntr][34] : log_rom1[cntr][38] ) ) );
-	comp_sub_b RS_1_0(st1_ms_n[0], st1_ms_d[0], 1'b0, st1_ms_b[0]);
+	restoring_subtractor RS_1_0(st1_ms_n[0], st1_ms_d[0], 1'b0, st1_ms_qo[1], st1_ms_s[0], st1_ms_b[0], st1_ms_qo[0]);
 	generate
 		for (i=1; i<9; i=i+1) begin : LOW_PREC_ST_1
-			comp_sub_b RS_1_i(st1_ms_n[i], st1_ms_d[i], st1_ms_b[i-1], st1_ms_b[i]);
+			restoring_subtractor RS_1_i(st1_ms_n[i], st1_ms_d[i], st1_ms_b[i-1], st1_ms_qo[i+1], st1_ms_s[i], st1_ms_b[i], st1_ms_qo[i]);
 		end
 	endgenerate
-	comp_sub_b RS_1_9(st1_ms_n[9], st1_ms_d[9], st1_ms_b[8], st1_ms_sn);
+	restoring_subtractor RS_1_9(st1_ms_n[9], st1_ms_d[9], st1_ms_b[8], st1_s, st1_ms_s[9], st1_ms_sn, st1_ms_qo[9]);
 	assign st1_s = ~st1_ms_sn;
 	// Slave : X_Long
 	wire [39:0] st1_sx_d;
 	wire [39:0] st1_sx_s;
+	wire [40:0] st1_sx_b;
 	wire [39:0] st1_sx_bo;
 	wire [39:0] st1_sx_bi;
 	assign st1_sx_bi[0] = 1'b0;
 	assign st1_sx_bi[39:1] = st0_sx_bo[38:0];
 	assign st1_sx_d = log_rom1[cntr];
-	wire [39:0] st1_sx_test;
 	generate
 		for (i=0; i<40; i=i+1) begin : HIGH_PREC_ST_1
-			assign st1_sx_test[i] = st0_sx_s[i];
-			full_subtractor FS_1_sx(st1_sx_test[i], st1_sx_d[i] & st1_s, st1_sx_bi[i], st1_sx_s[i], st1_sx_bo[i]);
+			full_subtractor FS_1_sx(st0_sx_s[i], st1_sx_d[i] & st1_s, st1_sx_bi[i], st1_sx_s[i], st1_sx_bo[i]);
 		end
 	endgenerate
 	// Slave : Y_Long
@@ -230,16 +226,11 @@ module fxp32s_exp(
 	wire [9:0] st2_ms_n;
 	wire [9:0] st2_ms_d;
 	wire [9:0] st2_ms_b;
-	assign st2_ms_n[0] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st1_sx_s[1] : st1_sx_s[5] ) : ( cntr[0] ? st1_sx_s[9] : st1_sx_s[13] ) ) : ( cntr[1] ? ( cntr[0] ? st1_sx_s[17] : st1_sx_s[21] ) : ( cntr[0] ? st1_sx_s[25] : st1_sx_s[29] ) ) );
-	assign st2_ms_n[1] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st1_sx_s[2] : st1_sx_s[6] ) : ( cntr[0] ? st1_sx_s[10] : st1_sx_s[14] ) ) : ( cntr[1] ? ( cntr[0] ? st1_sx_s[18] : st1_sx_s[22] ) : ( cntr[0] ? st1_sx_s[26] : st1_sx_s[30] ) ) );
-	assign st2_ms_n[2] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st1_sx_s[3] : st1_sx_s[7] ) : ( cntr[0] ? st1_sx_s[11] : st1_sx_s[15] ) ) : ( cntr[1] ? ( cntr[0] ? st1_sx_s[19] : st1_sx_s[23] ) : ( cntr[0] ? st1_sx_s[27] : st1_sx_s[31] ) ) );
-	assign st2_ms_n[3] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st1_sx_s[4] : st1_sx_s[8] ) : ( cntr[0] ? st1_sx_s[12] : st1_sx_s[16] ) ) : ( cntr[1] ? ( cntr[0] ? st1_sx_s[20] : st1_sx_s[24] ) : ( cntr[0] ? st1_sx_s[28] : st1_sx_s[32] ) ) );
-	assign st2_ms_n[4] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st1_sx_s[5] : st1_sx_s[9] ) : ( cntr[0] ? st1_sx_s[13] : st1_sx_s[17] ) ) : ( cntr[1] ? ( cntr[0] ? st1_sx_s[21] : st1_sx_s[25] ) : ( cntr[0] ? st1_sx_s[29] : st1_sx_s[33] ) ) );
-	assign st2_ms_n[5] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st1_sx_s[6] : st1_sx_s[10] ) : ( cntr[0] ? st1_sx_s[14] : st1_sx_s[18] ) ) : ( cntr[1] ? ( cntr[0] ? st1_sx_s[22] : st1_sx_s[26] ) : ( cntr[0] ? st1_sx_s[30] : st1_sx_s[34] ) ) );
-	assign st2_ms_n[6] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st1_sx_s[7] : st1_sx_s[11] ) : ( cntr[0] ? st1_sx_s[15] : st1_sx_s[19] ) ) : ( cntr[1] ? ( cntr[0] ? st1_sx_s[23] : st1_sx_s[27] ) : ( cntr[0] ? st1_sx_s[31] : st1_sx_s[35] ) ) );
-	assign st2_ms_n[7] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st1_sx_s[8] : st1_sx_s[12] ) : ( cntr[0] ? st1_sx_s[16] : st1_sx_s[20] ) ) : ( cntr[1] ? ( cntr[0] ? st1_sx_s[24] : st1_sx_s[28] ) : ( cntr[0] ? st1_sx_s[32] : st1_sx_s[36] ) ) );
-	assign st2_ms_n[8] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st1_sx_s[9] : st1_sx_s[13] ) : ( cntr[0] ? st1_sx_s[17] : st1_sx_s[21] ) ) : ( cntr[1] ? ( cntr[0] ? st1_sx_s[25] : st1_sx_s[29] ) : ( cntr[0] ? st1_sx_s[33] : st1_sx_s[37] ) ) );
-	assign st2_ms_n[9] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? st1_sx_s[10] : st1_sx_s[14] ) : ( cntr[0] ? st1_sx_s[18] : st1_sx_s[22] ) ) : ( cntr[1] ? ( cntr[0] ? st1_sx_s[26] : st1_sx_s[30] ) : ( cntr[0] ? st1_sx_s[34] : st1_sx_s[38] ) ) );
+	wire [9:0] st2_ms_s;
+	wire [9:0] st2_ms_bo;
+	wire [9:0] st2_ms_qo;
+	assign st2_ms_n[9:1] = st1_ms_s[8:0];
+	assign st2_ms_n[0] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? x[1] : x[5] ) : ( cntr[0] ? x[9] : x[13] ) ) : ( cntr[1] ? ( cntr[0] ? x[17] : x[21] ) : ( cntr[0] ? x[25] : x[29] ) ) );
 	assign st2_ms_d[9] = 1'b0;
 	assign st2_ms_d[0] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? log_rom2[cntr][1] : log_rom2[cntr][5] ) : ( cntr[0] ? log_rom2[cntr][9] : log_rom2[cntr][13] ) ) : ( cntr[1] ? ( cntr[0] ? log_rom2[cntr][17] : log_rom2[cntr][21] ) : ( cntr[0] ? log_rom2[cntr][25] : log_rom2[cntr][29] ) ) );
 	assign st2_ms_d[1] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? log_rom2[cntr][2] : log_rom2[cntr][6] ) : ( cntr[0] ? log_rom2[cntr][10] : log_rom2[cntr][14] ) ) : ( cntr[1] ? ( cntr[0] ? log_rom2[cntr][18] : log_rom2[cntr][22] ) : ( cntr[0] ? log_rom2[cntr][26] : log_rom2[cntr][30] ) ) );
@@ -250,27 +241,26 @@ module fxp32s_exp(
 	assign st2_ms_d[6] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? log_rom2[cntr][7] : log_rom2[cntr][11] ) : ( cntr[0] ? log_rom2[cntr][15] : log_rom2[cntr][19] ) ) : ( cntr[1] ? ( cntr[0] ? log_rom2[cntr][23] : log_rom2[cntr][27] ) : ( cntr[0] ? log_rom2[cntr][31] : log_rom2[cntr][35] ) ) );
 	assign st2_ms_d[7] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? log_rom2[cntr][8] : log_rom2[cntr][12] ) : ( cntr[0] ? log_rom2[cntr][16] : log_rom2[cntr][20] ) ) : ( cntr[1] ? ( cntr[0] ? log_rom2[cntr][24] : log_rom2[cntr][28] ) : ( cntr[0] ? log_rom2[cntr][32] : log_rom2[cntr][36] ) ) );
 	assign st2_ms_d[8] = ( cntr[2] ? ( cntr[1] ? ( cntr[0] ? log_rom2[cntr][9] : log_rom2[cntr][13] ) : ( cntr[0] ? log_rom2[cntr][17] : log_rom2[cntr][21] ) ) : ( cntr[1] ? ( cntr[0] ? log_rom2[cntr][25] : log_rom2[cntr][29] ) : ( cntr[0] ? log_rom2[cntr][33] : log_rom2[cntr][37] ) ) );
-	comp_sub_b RS_2_0(st2_ms_n[0], st2_ms_d[0], 1'b0, st2_ms_b[0]);
+	restoring_subtractor RS_2_0(st2_ms_n[0], st2_ms_d[0], 1'b0, st2_ms_qo[1], st2_ms_s[0], st2_ms_b[0], st2_ms_qo[0]);
 	generate
 		for (i=1; i<9; i=i+1) begin : LOW_PREC_ST_2
-			comp_sub_b RS_2_i(st2_ms_n[i], st2_ms_d[i], st2_ms_b[i-1], st2_ms_b[i]);
+			restoring_subtractor RS_2_i(st2_ms_n[i], st2_ms_d[i], st2_ms_b[i-1], st2_ms_qo[i+1], st2_ms_s[i], st2_ms_b[i], st2_ms_qo[i]);
 		end
 	endgenerate
-	comp_sub_b RS_2_9(st2_ms_n[9], st2_ms_d[9], st2_ms_b[8], st2_ms_sn);
+	restoring_subtractor RS_2_9(st2_ms_n[9], st2_ms_d[9], st2_ms_b[8], st2_s, st2_ms_s[9], st2_ms_sn, st2_ms_qo[9]);
 	assign st2_s = ~st2_ms_sn;
 	// Slave : X_Long
 	wire [39:0] st2_sx_d;
 	wire [39:0] st2_sx_s;
+	wire [40:0] st2_sx_b;
 	wire [39:0] st2_sx_bo;
 	wire [39:0] st2_sx_bi;
 	assign st2_sx_bi[0] = 1'b0;
 	assign st2_sx_bi[39:1] = st1_sx_bo[38:0];
 	assign st2_sx_d = log_rom2[cntr];
-	wire [39:0] st2_sx_test;
 	generate
 		for (i=0; i<40; i=i+1) begin : HIGH_PREC_ST_2
-			assign st2_sx_test[i] = st1_sx_s[i];
-			full_subtractor FS_2_sx(st2_sx_test[i], st2_sx_d[i] & st2_s, st2_sx_bi[i], st2_sx_s[i], st2_sx_bo[i]);
+			full_subtractor FS_2_sx(st1_sx_s[i], st2_sx_d[i] & st2_s, st2_sx_bi[i], st2_sx_s[i], st2_sx_bo[i]);
 		end
 	endgenerate
 	// Slave : Y_Long

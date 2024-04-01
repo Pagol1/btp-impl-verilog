@@ -105,3 +105,11 @@ if __name__ == "__main__":
     op = gen_var_shifter()
     with open(MODULE_FILE_NAME, 'w') as f:
         f.write(op)
+    # Part - II
+    BIT_LEN = BIT_LEN + ((NUM_PASS+1)*NUM_STAGE + LSB_POW) + GUARD_BIT
+    INDENT = 0
+    MSB_POW = LSB_POW + (BIT_LEN-1) 
+    MODULE_FILE_NAME = "fxp{}s_var_shifter.v".format(BIT_LEN)
+    op = gen_var_shifter()
+    with open(MODULE_FILE_NAME, 'w') as f:
+        f.write(op)

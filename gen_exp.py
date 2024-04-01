@@ -204,23 +204,24 @@ def gen_exp():
         op += pp(f"wire [{BIT_S-(i==0)}:0] {wms}_n;")
         op += pp(f"wire [{BIT_S-(i==0)}:0] {wms}_d;")
         op += pp(f"wire [{BIT_S-(i==0)}:0] {wms}_b;")
-        #op += pp(f"wire [{BIT_S-(i==0)}:0] {wms}_bo;")
-        # op += pp(f"wire [{BIT_S-(i==0)}:0] {wms}_qo;")
+        op += pp(f"wire [{BIT_S-(i==0)}:0] {wms}_s;")
+        op += pp(f"wire [{BIT_S-(i==0)}:0] {wms}_bo;")
+        op += pp(f"wire [{BIT_S-(i==0)}:0] {wms}_qo;")
         n_id = BL_X-BIT_S-i
         if i == 0:
             # op += pp(f"assign {wms}_n = x[{BL_X-1}-8*cntr:{n_id}-8*cntr];")
             op += mux_cntr_range(f"{wms}_n", 0, BIT_S-1, "x", n_id, BL_X-1, True, NUM_STAGE, NUM_PASS)
         else:
             wsx_ = wire_st(i-1) + "_sx"
-            # New - Draw from full prec compute
-            op += mux_cntr_range(f"{wms}_n", 0, BIT_S, f"{wsx_}_s", n_id, n_id + BIT_S, True, NUM_STAGE, NUM_PASS)
+            # # New - Draw from full prec compute
+            # op += mux_cntr_range(f"{wms}_n", 0, BIT_S, f"{wsx_}_s", n_id, n_id + BIT_S, True, NUM_STAGE, NUM_PASS)
             # op += pp(f"assign {wms}_n[{BIT_S}] = 1'b0;")
-            # # Old -- Using previous short output
-            # wms_ = wire_st(i-1) + "_ms"
-            # op += pp(f"assign {wms}_n[{BIT_S}:1] = {wms_}_s[{BIT_S-1}:0];")
-            # # op += pp(f"assign {wms}_n[0] = x[{n_id}-8*cntr];")
-            # op += mux_cntr_bit(f"{wms}_n[0]", "x", n_id, True, NUM_STAGE, NUM_PASS)
-            # # op += pp("assign ")
+            # Old -- Using previous short output
+            wms_ = wire_st(i-1) + "_ms"
+            op += pp(f"assign {wms}_n[{BIT_S}:1] = {wms_}_s[{BIT_S-1}:0];")
+            # op += pp(f"assign {wms}_n[0] = x[{n_id}-8*cntr];")
+            op += mux_cntr_bit(f"{wms}_n[0]", "x", n_id, True, NUM_STAGE, NUM_PASS)
+            # op += pp("assign ")
         if i == 0:
             # op += pp(f"assign {wms}_d = log_rom{i}[cntr][{BL_X-1}-8*cntr:{BL_X-BIT_S}-8*cntr];")
             op += mux_cntr_range(f"{wms}_d", 0, BIT_S-1, f"log_rom{i}[cntr]", BL_X-BIT_S, BL_X-1, True, NUM_STAGE, NUM_PASS)
@@ -229,15 +230,15 @@ def gen_exp():
             # op += pp(f"assign {wms}_d[{BIT_S-1}:0] = log_rom{i}[cntr][{BL_X-1-i}-8*cntr:{BL_X-BIT_S-i}-8*cntr];")
             op += mux_cntr_range(f"{wms}_d", 0, BIT_S-1, f"log_rom{i}[cntr]", BL_X-BIT_S-i, BL_X-1-i, True, NUM_STAGE, NUM_PASS)
         ## Drive n and d
-        op += pp(f"comp_sub_b RS_{i}_0({wms}_n[0], {wms}_d[0], 1'b0, {wms}_b[0]);")
+        op += pp(f"restoring_subtractor RS_{i}_0({wms}_n[0], {wms}_d[0], 1'b0, {wms}_qo[1], {wms}_s[0], {wms}_b[0], {wms}_qo[0]);")
         op += pp("generate")
         op += pp(f"for (i=1; i<{BIT_S-(i==0)}; i=i+1) begin : LOW_PREC_ST_{i}")
-        op += pp(f"comp_sub_b RS_{i}_i({wms}_n[i], {wms}_d[i], {wms}_b[i-1], {wms}_b[i]);")
+        op += pp(f"restoring_subtractor RS_{i}_i({wms}_n[i], {wms}_d[i], {wms}_b[i-1], {wms}_qo[i+1], {wms}_s[i], {wms}_b[i], {wms}_qo[i]);")
         op += pp("end")
         op += pp("endgenerate")
         # idx = BIT_S-(i==0)
         id_l = BIT_S - (i==0)
-        op += pp(f"comp_sub_b RS_{i}_{id_l}({wms}_n[{id_l}], {wms}_d[{id_l}], {wms}_b[{id_l-1}], {wms}_sn);")
+        op += pp(f"restoring_subtractor RS_{i}_{id_l}({wms}_n[{id_l}], {wms}_d[{id_l}], {wms}_b[{id_l-1}], {wire_st(i)}_s, {wms}_s[{id_l}], {wms}_sn, {wms}_qo[{id_l}]);")
         op += pp(f"assign {wire_st(i)}_s = ~{wms}_sn;")
         # High Precision Calc
         op += pp("// Slave : X_Long")
@@ -245,27 +246,27 @@ def gen_exp():
         wsx_ = wire_st(i-1) + "_sx"
         op += pp(f"wire [{BL_X-1}:0] {wsx}_d;")
         op += pp(f"wire [{BL_X-1}:0] {wsx}_s;")
-        op += pp(f"wire [{BL_X}:0] {wsx}_b;")
-        op += pp(f"assign {wsx}_b[0] = 1'b0;")
+        # op += pp(f"wire [{BL_X}:0] {wsx}_b;")
+        # op += pp(f"assign {wsx}_b[0] = 1'b0;")
         ## Old Borrow Logic
-        # op += pp(f"wire [{BL_X-1}:0] {wsx}_bo;")
-        # if i != 0:
-        #     op += pp(f"wire [{BL_X-1}:0] {wsx}_bi;")
-        #     op += pp(f"assign {wsx}_bi[0] = 1'b0;")
-        #     op += pp(f"assign {wsx}_bi[{BL_X-1}:1] = {wsx_}_bo[{BL_X-2}:0];")
+        op += pp(f"wire [{BL_X-1}:0] {wsx}_bo;")
+        if i != 0:
+            op += pp(f"wire [{BL_X-1}:0] {wsx}_bi;")
+            op += pp(f"assign {wsx}_bi[0] = 1'b0;")
+            op += pp(f"assign {wsx}_bi[{BL_X-1}:1] = {wsx_}_bo[{BL_X-2}:0];")
         op += pp(f"assign {wsx}_d = log_rom{i}[cntr];")
-        op += pp(f"wire [{BL_X-1}:0] {wsx}_test;")
+        # op += pp(f"wire [{BL_X-1}:0] {wsx}_test;")
         op += pp("generate")
         op += pp(f"for (i=0; i<{BL_X}; i=i+1) begin : HIGH_PREC_ST_{i}")
         if i == 0:
-            op += pp(f"assign {wsx}_test[i] = x[i];")
-            op += pp(f"full_subtractor FS_{i}_sx({wsx}_test[i], {wsx}_d[i] & {wire_st(i)}_s, {wsx}_b[i+1], {wsx}_s[i], {wsx}_b[i+1]);")
-            # op += pp(f"full_subtractor FS_{i}_sx({wsx}_test[i], {wsx}_d[i] & {wire_st(i)}_s, 1'b0, {wsx}_s[i], {wsx}_bo[i]);")
-            # op += pp(f"full_subtractor FS_{i}_sx(x[i], {wsx}_d[i] & {wire_st(i)}_s, 1'b0, {wsx}_s[i], {wsx}_bo[i]);")
+            # op += pp(f"assign {wsx}_test[i] = x[i];")
+            # op += pp(f"full_subtractor FS_{i}_sx({wsx}_test[i], {wsx}_d[i] & {wire_st(i)}_s, {wsx}_b[i+1], {wsx}_s[i], {wsx}_b[i+1]);")
+            # # op += pp(f"full_subtractor FS_{i}_sx({wsx}_test[i], {wsx}_d[i] & {wire_st(i)}_s, 1'b0, {wsx}_s[i], {wsx}_bo[i]);")
+            op += pp(f"full_subtractor FS_{i}_sx(x[i], {wsx}_d[i] & {wire_st(i)}_s, 1'b0, {wsx}_s[i], {wsx}_bo[i]);")
         else:
-            op += pp(f"assign {wsx}_test[i] = {wsx_}_s[i];")
+            # op += pp(f"assign {wsx}_test[i] = {wsx_}_s[i];")
             # op += pp(f"full_subtractor FS_{i}_sx({wsx}_test[i], {wsx}_d[i] & {wire_st(i)}_s, {wsx}_bi[i], {wsx}_s[i], {wsx}_bo[i]);")
-            # op += pp(f"full_subtractor FS_{i}_sx({wsx_}_s[i], {wsx}_d[i] & {wire_st(i)}_s, {wsx}_bi[i], {wsx}_s[i], {wsx}_bo[i]);")
+            op += pp(f"full_subtractor FS_{i}_sx({wsx_}_s[i], {wsx}_d[i] & {wire_st(i)}_s, {wsx}_bi[i], {wsx}_s[i], {wsx}_bo[i]);")
         op += pp("end")
         op += pp("endgenerate")
         # Need CCSA
@@ -506,60 +507,62 @@ def gen_exp_plain():
         op += pp("always @(posedge clk) begin")
         for j in range(CNTR_MAX+1):
             op += pp(f"log_rom{i}[{j}] <= " + lines[i+NUM_STAGE*j][:-1] + ";")
-            ## Old Logic
-            # upd = False
-            # x_val = math.log2( 1+math.pow(2, -(8*j+i+1)) )
-            # x = get_ffrac_bin(BL_X, x_val)
-            # if (x_val == 0):
-            #     print(x_val, i, j)
-            #     sp = x_last[:-1].split('b')
-            #     x = sp[0] + "b0" + sp[1]
-            # op += pp(f"log_rom{i}[{j}] <= " + x + ";" + (" // Div2" if upd else ""))
-            # x_last = x
         op += pp("end")
     op += pp("genvar i;")
-    for i in range(NUM_STAGE-1):
-        # Low precision compute
+    for i in range(NUM_STAGE):
+        # Full precision compute
         op += pp(f"//// Stage {i} ////")
         op += pp("// Master : X_Long")
-        
-        wms = wire_st(i) + "_ms"
+        wms = wire_st(i) + "_sx"
         op += pp(f"wire {wire_st(i)}_s;")
         op += pp(f"wire {wms}_sn;")
-        op += pp(f"wire [{BIT_LEN-1-(i==0)}:0] {wms}_n;")
-        op += pp(f"wire [{BIT_LEN-1-(i==0)}:0] {wms}_d;")
-        op += pp(f"wire [{BIT_LEN-1-(i==0)}:0] {wms}_b;")
-        op += pp(f"wire [{BIT_LEN-1-(i==0)}:0] {wms}_q;")
-        op += pp(f"wire [{BIT_LEN-1-(i==0)}:0] {wms}_s;")
-        #op += pp(f"wire [{BIT_S-(i==0)}:0] {wms}_bo;")
-        # op += pp(f"wire [{BIT_S-(i==0)}:0] {wms}_qo;")
+        op += pp(f"wire [{BL_X-1}:0] {wms}_n;")
+        op += pp(f"wire [{BL_X-1}:0] {wms}_d;")
+        op += pp(f"wire [{BL_X-1}:0] {wms}_b;")
+        op += pp(f"wire [{BL_X-1}:0] {wms}_q;")
+        if i != NUM_STAGE-1:
+            op += pp(f"wire [{BL_X-1}:0] {wms}_s;")
         n_id = BL_X-BIT_S-i
         if i == 0:
             # op += pp(f"assign {wms}_n = x[{BL_X-1}-8*cntr:{n_id}-8*cntr];")
-            op += mux_cntr_range(f"{wms}_n", 0, BIT_LEN-2, "x", n_id, BL_X-1, True, NUM_STAGE, NUM_PASS)
+            # op += mux_cntr_range(f"{wms}_n", 0, BIT_LEN-2, "x", n_id, BL_X-1, True, NUM_STAGE, NUM_PASS)
+            op += pp(f"assign {wms}_n = x;")
         else:
-            wms_ = wire_st(i-1) + "_ms"
-            op += pp(f"assign {wms}_n[{BIT_S}:1] = {wms_}_s[{BIT_S-1}:0];")
-            # op += pp(f"assign {wms}_n[0] = x[{n_id}-8*cntr];")
-            op += mux_cntr_bit(f"{wms}_n[0]", "x", n_id, True, NUM_STAGE, NUM_PASS)
+            wms_ = wire_st(i-1) + "_sx"
+            op += pp(f"assign {wms}_n = {wms_}_s;")
+            # op += pp(f"assign {wms}_n[{BIT_S}:1] = {wms_}_s[{BIT_S-1}:0];")
+            # # op += pp(f"assign {wms}_n[0] = x[{n_id}-8*cntr];")
+            # op += mux_cntr_bit(f"{wms}_n[0]", "x", n_id, True, NUM_STAGE, NUM_PASS)
             # op += pp("assign ")
-        if i == 0:
-            # op += pp(f"assign {wms}_d = log_rom{i}[cntr][{BL_X-1}-8*cntr:{BL_X-BIT_S}-8*cntr];")
-            op += mux_cntr_range(f"{wms}_d", 0, BIT_S-1, f"log_rom{i}[cntr]", BL_X-BIT_S, BL_X-1, True, NUM_STAGE, NUM_PASS)
-        else:
-            op += pp(f"assign {wms}_d[{BIT_S}] = 1'b0;")
-            # op += pp(f"assign {wms}_d[{BIT_S-1}:0] = log_rom{i}[cntr][{BL_X-1-i}-8*cntr:{BL_X-BIT_S-i}-8*cntr];")
-            op += mux_cntr_range(f"{wms}_d", 0, BIT_S-1, f"log_rom{i}[cntr]", BL_X-BIT_S-i, BL_X-1-i, True, NUM_STAGE, NUM_PASS)
+        op += pp(f"assign {wms}_d = log_rom{i}[cntr];")
+        # if i == 0:
+        #     # op += pp(f"assign {wms}_d = log_rom{i}[cntr][{BL_X-1}-8*cntr:{BL_X-BIT_S}-8*cntr];")
+        #     op += mux_cntr_range(f"{wms}_d", 0, BIT_S-1, f"log_rom{i}[cntr]", BL_X-BIT_S, BL_X-1, True, NUM_STAGE, NUM_PASS)
+        # else:
+        #     op += pp(f"assign {wms}_d[{BIT_S}] = 1'b0;")
+        #     # op += pp(f"assign {wms}_d[{BIT_S-1}:0] = log_rom{i}[cntr][{BL_X-1-i}-8*cntr:{BL_X-BIT_S-i}-8*cntr];")
+        #     op += mux_cntr_range(f"{wms}_d", 0, BIT_S-1, f"log_rom{i}[cntr]", BL_X-BIT_S-i, BL_X-1-i, True, NUM_STAGE, NUM_PASS)
         ## Drive n and d
-        op += pp(f"restoring_subtractor RS_{i}_0({wms}_n[0], {wms}_d[0], 1'b0, {wms}_q[1], {wms}_s[0], {wms}_b[0], {wms}_q[0]);")
-        op += pp("generate")
-        op += pp(f"for (i=1; i<{BIT_S-(i==0)}; i=i+1) begin : LOW_PREC_ST_{i}")
-        op += pp(f"restoring_subtractor RS_{i}_i({wms}_n[i], {wms}_d[i], {wms}_b[i-1], {wms}_q[i+1], {wms}_s[i], {wms}_b[i], {wms}_q[i]);")
-        op += pp("end")
-        op += pp("endgenerate")
-        # idx = BIT_S-(i==0)
-        id_l = BIT_S - (i==0)
-        op += pp(f"restoring_subtractor RS_{i}_{id_l}({wms}_n[{id_l}], {wms}_d[{id_l}], {wms}_b[{id_l-1}], {wire_st(i)}_s, {wms}_s[{id_l}], {wms}_sn, {wms}_q[{id_l}]);")
+        if i != NUM_STAGE-1:
+            op += pp(f"restoring_subtractor RS_{i}_0({wms}_n[0], {wms}_d[0], 1'b0, {wms}_q[1], {wms}_s[0], {wms}_b[0], {wms}_q[0]);")
+            op += pp("generate")
+            op += pp(f"for (i=1; i<{BL_X-1}; i=i+1) begin : FULL_PREC_ST_{i}")
+            op += pp(f"restoring_subtractor RS_{i}_i({wms}_n[i], {wms}_d[i], {wms}_b[i-1], {wms}_q[i+1], {wms}_s[i], {wms}_b[i], {wms}_q[i]);")
+            op += pp("end")
+            op += pp("endgenerate")
+            # idx = BIT_S-(i==0)
+            id_l = BL_X-1
+            op += pp(f"restoring_subtractor RS_{i}_{id_l}({wms}_n[{id_l}], {wms}_d[{id_l}], {wms}_b[{id_l-1}], {wire_st(i)}_s, {wms}_s[{id_l}], {wms}_sn, {wms}_q[{id_l}]);")
+        else:
+            op += pp(f"restoring_subtractor RS_{i}_0({wms}_n[0], {wms}_d[0], 1'b0, {wms}_q[1], x_nxt[0], {wms}_b[0], {wms}_q[0]);")
+            op += pp("generate")
+            op += pp(f"for (i=1; i<{BL_X-1}; i=i+1) begin : FULL_PREC_ST_{i}")
+            op += pp(f"restoring_subtractor RS_{i}_i({wms}_n[i], {wms}_d[i], {wms}_b[i-1], {wms}_q[i+1], x_nxt[i], {wms}_b[i], {wms}_q[i]);")
+            op += pp("end")
+            op += pp("endgenerate")
+            # idx = BIT_S-(i==0)
+            id_l = BL_X-1
+            op += pp(f"restoring_subtractor RS_{i}_{id_l}({wms}_n[{id_l}], {wms}_d[{id_l}], {wms}_b[{id_l-1}], {wire_st(i)}_s, x_nxt[{id_l}], {wms}_sn, {wms}_q[{id_l}]);")
         op += pp(f"assign {wire_st(i)}_s = ~{wms}_sn;")
         # # High Precision Calc
         # op += pp("// Slave : X_Long")
@@ -582,67 +585,70 @@ def gen_exp_plain():
         # op += pp("end")
         # op += pp("endgenerate")
         # Need CCSA
-        op += pp("// Slave : Y_Long")
-        wsy = wire_st(i) + "_sy"
-        wsy_ = wire_st(i-1) + "_sy"
-        # Input
-        op += pp(f"wire [{BL_Y-1}:0] {wsy}_a;")
-        op += pp(f"wire [{BL_Y-1}:0] {wsy}_a_;")
-        # Output
-        op += pp(f"wire [{BL_Y-1}:0] {wsy}_s;")
-        op += pp(f"wire [{BL_Y-1}:0] {wsy}_s_;")
-        id_y = BL_Y-2-i
-        if i != 0:
-            # Last stage carry
-            op += pp(f"wire [{BL_Y-1}:0] {wsy}_b;")
-            op += pp(f"wire [{BL_Y-1}:0] {wsy}_b_;")
-            # Temp storage
-            op += pp(f"wire [{BL_Y-1}:0] {wsy}_t;")
-            op += pp(f"wire [{BL_Y-1}:0] {wsy}_t_;")
-            op += pp(f"assign {wsy}_a = {wsy_}_s;")
-            op += pp(f"assign {wsy}_b =" + "{"+ f"{wsy_}_s_[{BL_Y-2}:0]" +", 1'b0"+"};")
-            # op += pp(f"assign {wsy}_b_[{id_y}-8*cntr:0] = {wsy}_b[{BL_Y-1}:{i+1}+8*cntr];")
-            # op += pp(f"assign {wsy}_b_[{BL_Y-1}:{id_y+1}-8*cntr] = 0;")
-            ## shft_abs = i+1+8*cntr
-            op += pp(f"wire [{BL_Y-1}:0] {wsy}_shift_abs;")
-            op += pp(f"assign {wsy}_shift_abs = {i+1} + " + "{cntr, " + get_mc(3, "1'b0") + "};")
-            op += pp(f"fxp{BL_Y}s_var_shifter SHFTA_Y_ST{i}(clk, rstn, {wsy}_a, {wsy}_shift_abs, 1'b1, {wsy}_a_);")
-            op += pp(f"fxp{BL_Y}s_var_shifter SHFTB_Y_ST{i}(clk, rstn, {wsy}_b, {wsy}_shift_abs, 1'b1, {wsy}_b_);")
-        else:
-            op += pp(f"wire [{BL_Y-1}:0] {wsy}_shift_abs;")
-            op += pp(f"assign {wsy}_shift_abs = {i+1} + " + "{cntr, " + get_mc(3, "1'b0") + "};")
-            op += pp(f"fxp{BL_Y}s_var_shifter SHFTA_Y_ST{i}(clk, rstn, {wsy}_a, {wsy}_shift_abs, 1'b1, {wsy}_a_);")
-            op += pp(f"assign {wsy}_a = y;")
-        # op += pp(f"assign {wsy}_a_[{id_y}-8*cntr:0] = {wsy}_a[{BL_Y-1}:{i+1}+8*cntr];")
-        # op += pp(f"assign {wsy}_a_[{BL_Y-1}:{id_y+1}-8*cntr] = 0;")
-        op += pp("generate")
-        op += pp(f"for (i=0; i<{BL_Y}; i=i+1) begin : SLAVE_ST_{i}")
-        if i == 0:
-            op += pp(f"full_adder FA_{i}_sy_0({wsy}_a[i], {wsy}_a_[i] & {wire_st(i)}_s, 1'b0, {wsy}_s[i], {wsy}_s_[i]);")
-        else:
-            op += pp(f"full_adder FA_{i}_sy_0({wsy}_a[i], {wsy}_a_[i] & {wire_st(i)}_s, {wsy}_b[i], {wsy}_t[i], {wsy}_t_[i]);")
-            op += pp(f"full_adder FA_{i}_sy_1({wsy}_t[i], {wsy}_b_[i] & {wire_st(i)}_s, {wsy}_t_[i], {wsy}_s[i], {wsy}_s_[i]);")
-        op += pp("end")
-        op += pp("endgenerate")
+        if i != NUM_STAGE-1:
+            op += pp("// Slave : Y_Long")
+            wsy = wire_st(i) + "_sy"
+            wsy_ = wire_st(i-1) + "_sy"
+            # Input
+            op += pp(f"wire [{BL_Y-1}:0] {wsy}_a;")
+            op += pp(f"wire [{BL_Y-1}:0] {wsy}_a_;")
+            # Output
+            op += pp(f"wire [{BL_Y-1}:0] {wsy}_s;")
+            op += pp(f"wire [{BL_Y-1}:0] {wsy}_s_;")
+            id_y = BL_Y-2-i
+            if i != 0:
+                # Last stage carry
+                op += pp(f"wire [{BL_Y-1}:0] {wsy}_b;")
+                op += pp(f"wire [{BL_Y-1}:0] {wsy}_b_;")
+                # Temp storage
+                op += pp(f"wire [{BL_Y-1}:0] {wsy}_t;")
+                op += pp(f"wire [{BL_Y-1}:0] {wsy}_t_;")
+                op += pp(f"assign {wsy}_a = {wsy_}_s;")
+                op += pp(f"assign {wsy}_b =" + "{"+ f"{wsy_}_s_[{BL_Y-2}:0]" +", 1'b0"+"};")
+                # op += pp(f"assign {wsy}_b_[{id_y}-8*cntr:0] = {wsy}_b[{BL_Y-1}:{i+1}+8*cntr];")
+                # op += pp(f"assign {wsy}_b_[{BL_Y-1}:{id_y+1}-8*cntr] = 0;")
+                ## shft_abs = i+1+8*cntr
+                op += pp(f"wire [{BL_Y-1}:0] {wsy}_shift_abs;")
+                op += pp(f"assign {wsy}_shift_abs = {i+1} + " + "{cntr, " + get_mc(3, "1'b0") + "};")
+                op += pp(f"fxp{BL_Y}s_var_shifter SHFTA_Y_ST{i}(clk, rstn, {wsy}_a, {wsy}_shift_abs, 1'b1, {wsy}_a_);")
+                op += pp(f"fxp{BL_Y}s_var_shifter SHFTB_Y_ST{i}(clk, rstn, {wsy}_b, {wsy}_shift_abs, 1'b1, {wsy}_b_);")
+            else:
+                op += pp(f"wire [{BL_Y-1}:0] {wsy}_shift_abs;")
+                op += pp(f"assign {wsy}_shift_abs = {i+1} + " + "{cntr, " + get_mc(3, "1'b0") + "};")
+                op += pp(f"fxp{BL_Y}s_var_shifter SHFTA_Y_ST{i}(clk, rstn, {wsy}_a, {wsy}_shift_abs, 1'b1, {wsy}_a_);")
+                op += pp(f"assign {wsy}_a = y;")
+            # op += pp(f"assign {wsy}_a_[{id_y}-8*cntr:0] = {wsy}_a[{BL_Y-1}:{i+1}+8*cntr];")
+            # op += pp(f"assign {wsy}_a_[{BL_Y-1}:{id_y+1}-8*cntr] = 0;")
+            op += pp("generate")
+            op += pp(f"for (i=0; i<{BL_Y}; i=i+1) begin : SLAVE_ST_{i}")
+            if i == 0:
+                op += pp(f"full_adder FA_{i}_sy_0({wsy}_a[i], {wsy}_a_[i] & {wire_st(i)}_s, 1'b0, {wsy}_s[i], {wsy}_s_[i]);")
+            else:
+                op += pp(f"full_adder FA_{i}_sy_0({wsy}_a[i], {wsy}_a_[i] & {wire_st(i)}_s, {wsy}_b[i], {wsy}_t[i], {wsy}_t_[i]);")
+                op += pp(f"full_adder FA_{i}_sy_1({wsy}_t[i], {wsy}_b_[i] & {wire_st(i)}_s, {wsy}_t_[i], {wsy}_s[i], {wsy}_s_[i]);")
+            op += pp("end")
+            op += pp("endgenerate")
+        # end loop #
     ### Final Stage ###
     ## Comp x_nxt
     i = NUM_STAGE-1
-    op += pp(f"//// Stage {i} ////")
-    wsxl = wire_st(NUM_STAGE-2) + "_sx"
-    # Subtract final
-    op += pp(f"wire [{BL_X-1}:0] st{i}_d;")
-    op += pp(f"wire [{BL_X}:0] st{i}_b;")
-    op += pp(f"wire [{BL_X-1}:0] st{i}_q;")
-    op += pp(f"assign st{i}_b[0] = 1'b0;")
-    op += pp(f"assign st{i}_d = log_rom{i}[cntr];")
-    op += pp("generate")
-    op += pp(f"for (i=0; i<{BL_X-1}; i=i+1) begin : BPS")
-    op += pp(f"restoring_subtractor BPS({wsxl}_s[i], st{i}_d[i], st{i}_b[i], st{i}_q[i+1], x_nxt[i], st{i}_b[i+1], st{i}_q[i]);")
-    op += pp("end")
-    op += pp("endgenerate")
-    id_l = BL_X-1
-    op += pp(f"restoring_subtractor BPS_L({wsxl}_s[{id_l}], st{i}_d[{id_l}], st{i}_b[{id_l}], st{i}_s, x_nxt[{id_l}], st{i}_b[{id_l+1}], st{i}_q[{id_l}]);")
-    op += pp(f"assign st{i}_s = ~st{i}_b[{BL_X}];")
+    
+    # op += pp(f"//// Stage {i} ////")
+    # wsxl = wire_st(NUM_STAGE-2) + "_sx"
+    # # Subtract final
+    # op += pp(f"wire [{BL_X-1}:0] st{i}_d;")
+    # op += pp(f"wire [{BL_X}:0] st{i}_b;")
+    # op += pp(f"wire [{BL_X-1}:0] st{i}_q;")
+    # op += pp(f"assign st{i}_b[0] = 1'b0;")
+    # op += pp(f"assign st{i}_d = log_rom{i}[cntr];")
+    # op += pp("generate")
+    # op += pp(f"for (i=0; i<{BL_X-1}; i=i+1) begin : BPS")
+    # op += pp(f"restoring_subtractor BPS({wsxl}_s[i], st{i}_d[i], st{i}_b[i], st{i}_q[i+1], x_nxt[i], st{i}_b[i+1], st{i}_q[i]);")
+    # op += pp("end")
+    # op += pp("endgenerate")
+    # id_l = BL_X-1
+    # op += pp(f"restoring_subtractor BPS_L({wsxl}_s[{id_l}], st{i}_d[{id_l}], st{i}_b[{id_l}], st{i}_s, x_nxt[{id_l}], st{i}_b[{id_l+1}], st{i}_q[{id_l}]);")
+    # op += pp(f"assign st{i}_s = ~st{i}_b[{BL_X}];")
     ## Comp y_nxt
     wsy_ = wire_st(NUM_STAGE-2) + "_sy"
     wsy = wire_st(NUM_STAGE-1) + "_sy"
@@ -671,8 +677,8 @@ def gen_exp_plain():
     # op += pp(f"assign {wsy}_a_[{BL_Y-1}:{id_y+1}-8*cntr] = 0;")
     op += pp("generate")
     op += pp(f"for (i=0; i<{BL_Y}; i=i+1) begin : SLAVE_ST_{i}")
-    op += pp(f"full_adder FA_{i}_sy_0({wsy}_a[i], {wsy}_a_[i] & st{i}_s, {wsy}_b[i], {wsy}_t[i], {wsy}_t_[i]);")
-    op += pp(f"full_adder FA_{i}_sy_1({wsy}_t[i], {wsy}_b_[i] & st{i}_s, {wsy}_t_[i], {wsy}_s[i], {wsy}_s_[i]);")
+    op += pp(f"full_adder FA_{i}_sy_0({wsy}_a[i], {wsy}_a_[i] & {wire_st(i)}_s, {wsy}_b[i], {wsy}_t[i], {wsy}_t_[i]);")
+    op += pp(f"full_adder FA_{i}_sy_1({wsy}_t[i], {wsy}_b_[i] & {wire_st(i)}_s, {wsy}_t_[i], {wsy}_s[i], {wsy}_s_[i]);")
     op += pp("end")
     op += pp("endgenerate")
     # CPA Stage
@@ -716,6 +722,6 @@ if __name__ == "__main__":
     INDENT = 0
     MSB_POW = LSB_POW + (BIT_LEN-1) 
     MODULE_FILE_NAME = "fxp{}s_exp.v".format(BIT_LEN)
-    op = gen_exp()
+    op = gen_exp_plain() #gen_exp_plain()
     with open(MODULE_FILE_NAME, 'w') as f:
         f.write(op)
